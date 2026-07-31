@@ -1,6 +1,6 @@
-# Prototype
+# Data Table Prototypes
 
-Minimal React + Vite project for prototyping scenarios.
+Minimal React + Vite project for prototyping data table scenarios.
 
 ## Getting started
 

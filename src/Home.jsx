@@ -4,7 +4,7 @@ import { scenarios } from './scenarios.jsx'
 export default function Home() {
   return (
     <main className="home">
-      <h1>Prototype Scenarios</h1>
+      <h1>Data Table Prototypes</h1>
       <ul className="scenario-list">
         {scenarios.map(({ path, title, description }) => (
           <li key={path}>
