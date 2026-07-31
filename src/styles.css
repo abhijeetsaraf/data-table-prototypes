@@ -47,7 +47,8 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
   color: var(--text);
   background: var(--canvas);
 }
@@ -941,6 +942,150 @@ h1 {
   align-items: center;
   justify-content: flex-end;
   color: var(--text-subtle);
+}
+
+/* ==========================================================================
+   Variant: Header Pager + Drill In (combination)
+   A single "row header" bar carries the split-button path (left) and the
+   level's pager (right), so only one pager is ever visible.
+   ========================================================================== */
+.dt-drillbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex: none;
+  min-height: 50px;
+  padding: 8px 12px;
+  background: var(--bg-tint);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  animation: dt-fade-slide var(--dur) var(--ease) both;
+}
+
+.dt-drillbar-start {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.dt-drillbar-root {
+  padding: 4px 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.dt-drillbar-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+
+/* Split button: breadcrumb path + trailing ✕ (go up one level) */
+.dt-split {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.dt-split-main {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 4px;
+  overflow: hidden;
+}
+
+.dt-split-crumb {
+  display: inline-flex;
+  align-items: center;
+  max-width: 200px;
+  padding: 6px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.dt-split-crumb:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.dt-split-crumb.is-current,
+.dt-split-crumb:disabled {
+  color: var(--text);
+  cursor: default;
+}
+
+.dt-split-sep {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  color: var(--text-subtle);
+}
+
+.dt-split-divider {
+  width: 1px;
+  flex: none;
+  background: var(--border-strong);
+}
+
+.dt-split-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  flex: none;
+  padding: 0;
+  border: none;
+  background: var(--action);
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+.dt-split-close:hover {
+  background: var(--action-hover);
+}
+
+.dt-split-close:active {
+  transform: scale(0.94);
+}
+
+/* Pager sitting inside the drill bar reads on the tinted bar */
+.dt-drillbar .dt-pager-inline {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+/* ==========================================================================
+   Variant: Accordion Drill In
+   The group accordion header row carries the split-button breadcrumb (left)
+   and the current level's pager (right); drilling stays inside the group.
+   ========================================================================== */
+.dt-group-header-start {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
 /* ==========================================================================

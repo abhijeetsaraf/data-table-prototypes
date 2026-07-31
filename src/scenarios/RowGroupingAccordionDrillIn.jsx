@@ -2,9 +2,14 @@ import { Fragment, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 // ---------------------------------------------------------------------------
-// Variant: Single-open accordion (Point 1)
-// Only one top group is open at a time, and within it only one sub-group is
-// open at a time. This caps the number of stacked micro-pagers at two.
+// Variant: Accordion Drill In
+// The primary (top-level) group pagination stays as the standard main pager in
+// the footer. Each top group is a single-open accordion. Expanding a group
+// reveals a drill-in experience embedded INSIDE the accordion: sub-groups list
+// first, and drilling into a sub-group swaps in its items with a split-button
+// breadcrumb header embedded at the top. The level's pager is stacked to the
+// end of the accordion. So only the embedded drill controls move; the main
+// pager never leaves the footer.
 // ---------------------------------------------------------------------------
 const GROUP_COL_WIDTH = 320
 
@@ -108,46 +113,49 @@ function PageLast() {
     </svg>
   )
 }
-
-// --- Bottom micro pagination (same as the base stacked variant) ---
-function MicroPagination({ density, label, page, pageCount, total, onGoTo, summaryWidth }) {
-  const start = (page - 1) * MICRO_PAGE_SIZE + 1
-  const end = Math.min(page * MICRO_PAGE_SIZE, total)
+function CloseIcon() {
   return (
-    <div className={`dt-micro-pagination dt-micro-${density}`}>
-      <span
-        className="dt-micro-summary"
-        style={summaryWidth ? { width: summaryWidth } : undefined}
-      >
-        {label} {start}–{end} of {total}
-      </span>
-      <div className="dt-micro-controls">
-        <button type="button" className="dt-page-btn" aria-label="First page" disabled={page === 1} onClick={() => onGoTo(1)}><PageFirst /></button>
-        <button type="button" className="dt-page-btn" aria-label="Previous page" disabled={page === 1} onClick={() => onGoTo(page - 1)}><ChevronLeft /></button>
-        <span className="dt-page-label">Page</span>
-        <div className="dt-number-field">
-          <input type="number" min={1} max={pageCount} value={page} onChange={(e) => onGoTo(Number(e.target.value))} />
-        </div>
-        <span className="dt-page-count">of {pageCount}</span>
-        <button type="button" className="dt-page-btn" aria-label="Next page" disabled={page === pageCount} onClick={() => onGoTo(page + 1)}><ChevronRight /></button>
-        <button type="button" className="dt-page-btn" aria-label="Last page" disabled={page === pageCount} onClick={() => onGoTo(pageCount)}><PageLast /></button>
-      </div>
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Header-anchored pager — same component as the Header Pager + Drill In
+// variant, here stacked to the end of an open accordion.
+// ---------------------------------------------------------------------------
+function HeaderPager({ label, page, pageCount, total, pageSize, onGoTo }) {
+  const start = (page - 1) * pageSize + 1
+  const end = Math.min(page * pageSize, total)
+  return (
+    <div className="dt-pager-inline dt-pager-sm">
+      <span className="dt-pager-summary">{label} {start}–{end} of {total}</span>
+      <button type="button" className="dt-page-btn" aria-label="First page" disabled={page === 1} onClick={() => onGoTo(1)}><PageFirst /></button>
+      <button type="button" className="dt-page-btn" aria-label="Previous page" disabled={page === 1} onClick={() => onGoTo(page - 1)}><ChevronLeft /></button>
+      <span className="dt-pager-page">{page} / {pageCount}</span>
+      <button type="button" className="dt-page-btn" aria-label="Next page" disabled={page === pageCount} onClick={() => onGoTo(page + 1)}><ChevronRight /></button>
+      <button type="button" className="dt-page-btn" aria-label="Last page" disabled={page === pageCount} onClick={() => onGoTo(pageCount)}><PageLast /></button>
     </div>
   )
 }
 
 const PAGE_SIZES = [10, 20, 50]
 
-export default function RowGroupingSingleOpen() {
+export default function RowGroupingAccordionDrillIn() {
   const [sort, setSort] = useState({ key: null, dir: 'asc' })
   const [openFilters, setOpenFilters] = useState({})
   const [filters, setFilters] = useState({})
+
+  // Primary group pagination — standard main pager (footer).
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
 
-  // Single-open state: one top group, one sub-group within it.
+  // Single-open top group + drill state scoped to that group.
+  //   subPath = []   -> showing the group's sub-groups
+  //   subPath = [si] -> drilled into sub-group si, showing its items
   const [openGroup, setOpenGroup] = useState(null)
-  const [openSub, setOpenSub] = useState(null)
+  const [subPath, setSubPath] = useState([])
   const [microPage, setMicroPage] = useState({})
 
   const toggleSort = (key) =>
@@ -160,9 +168,10 @@ export default function RowGroupingSingleOpen() {
 
   const toggleGroup = (gi) => {
     setOpenGroup((prev) => (prev === gi ? null : gi))
-    setOpenSub(null)
+    setSubPath([])
   }
-  const toggleSubgroup = (si) => setOpenSub((prev) => (prev === si ? null : si))
+  const drillIntoSub = (si) => setSubPath([si])
+  const drillUp = () => setSubPath([])
 
   const getMicro = (key) => microPage[key] || 1
   const setMicro = (key, value, count) =>
@@ -181,10 +190,11 @@ export default function RowGroupingSingleOpen() {
     <main className="dt-scenario dt-scenario--fill">
       <div className="dt-topbar">
         <Link to="/" className="back-link">← Back</Link>
-        <h1 className="dt-title">Row Grouping — Single Open</h1>
+        <h1 className="dt-title">Row Grouping — Accordion Drill In</h1>
         <p className="dt-subtitle">
-          Only one group (and one sub-group inside it) can be open at a time, so
-          at most two micro-pagers are ever visible.
+          Primary groups keep the standard footer pager. Each group's accordion
+          header becomes a split-button breadcrumb, and the current level's pager
+          is anchored to that same header row as you drill in.
         </p>
         <div className="dt-groupby">
           <span className="dt-groupby-label">Grouped by</span>
@@ -257,95 +267,121 @@ export default function RowGroupingSingleOpen() {
                 const gi = startG + idx
                 const gKey = `g${gi}`
                 const gOpen = openGroup === gi
-                const gMicro = getMicro(gKey)
-                const subStart = (gMicro - 1) * MICRO_PAGE_SIZE
+                const drilled = gOpen && subPath.length === 1
+                const si = drilled ? subPath[0] : null
+
+                const subMicroKey = `sub-${gi}`
+                const subMicro = getMicro(subMicroKey)
+                const subStart = (subMicro - 1) * MICRO_PAGE_SIZE
                 const subEnd = Math.min(subStart + MICRO_PAGE_SIZE, SUBGROUPS)
+
+                const itMicroKey = `items-${gi}-${si}`
+                const itMicro = getMicro(itMicroKey)
+                const itStart = (itMicro - 1) * MICRO_PAGE_SIZE
+                const itEnd = Math.min(itStart + MICRO_PAGE_SIZE, LEAF_ITEMS)
 
                 return (
                   <Fragment key={gKey}>
                     <tr className="dt-group-row" data-level="0">
-                      <td className="dt-group-cell">
-                        <div className="dt-group-inner" style={{ paddingLeft: 12 }}>
-                          <button type="button" className="dt-group-toggle"
-                            aria-expanded={gOpen} aria-label={gOpen ? 'Collapse group' : 'Expand group'}
-                            onClick={() => toggleGroup(gi)}>
-                            <span className={`dt-group-chevron ${gOpen ? 'is-open' : ''}`}><ChevronRight /></span>
-                          </button>
-                          <span className="dt-group-value">{topLabel(gi)}</span>
-                          <span className="dt-group-count">{SUBGROUPS}</span>
-                        </div>
-                      </td>
-                      {dataColumns.map((col) => (<td key={col.key} className="dt-cell dt-cell--muted" />))}
-                    </tr>
-
-                    {gOpen && (
-                      <>
-                        {Array.from({ length: subEnd - subStart }, (_, sidx) => {
-                          const si = subStart + sidx
-                          const sKey = `${gKey}-s${si}`
-                          const sOpen = openSub === si
-                          const sMicro = getMicro(sKey)
-                          const itStart = (sMicro - 1) * MICRO_PAGE_SIZE
-                          const itEnd = Math.min(itStart + MICRO_PAGE_SIZE, LEAF_ITEMS)
-
-                          return (
-                            <Fragment key={sKey}>
-                              <tr className="dt-group-row" data-level="1">
-                                <td className="dt-group-cell">
-                                  <div className="dt-group-inner" style={{ paddingLeft: 12 + INDENT_STEP }}>
-                                    <button type="button" className="dt-group-toggle"
-                                      aria-expanded={sOpen} aria-label={sOpen ? 'Collapse sub-group' : 'Expand sub-group'}
-                                      onClick={() => toggleSubgroup(si)}>
-                                      <span className={`dt-group-chevron ${sOpen ? 'is-open' : ''}`}><ChevronRight /></span>
+                      <td className="dt-group-cell" colSpan={columns.length}>
+                        <div className="dt-group-header" style={{ paddingLeft: 12 }}>
+                          <div className="dt-group-header-start">
+                            <button type="button" className="dt-group-toggle"
+                              aria-expanded={gOpen} aria-label={gOpen ? 'Collapse group' : 'Expand group'}
+                              onClick={() => toggleGroup(gi)}>
+                              <span className={`dt-group-chevron ${gOpen ? 'is-open' : ''}`}><ChevronRight /></span>
+                            </button>
+                            <div className="dt-split" role="group" aria-label="Current path">
+                              <div className="dt-split-main">
+                                <button type="button"
+                                  className={`dt-split-crumb ${drilled ? '' : 'is-current'}`}
+                                  disabled={!drilled}
+                                  onClick={drilled ? drillUp : undefined}>
+                                  {topLabel(gi)}
+                                </button>
+                                {drilled && (
+                                  <>
+                                    <span className="dt-split-sep"><ChevronRight /></span>
+                                    <button type="button" className="dt-split-crumb is-current" disabled>
+                                      {subLabel(si)}
                                     </button>
-                                    <span className="dt-group-value">{subLabel(si)}</span>
-                                    <span className="dt-group-count">{LEAF_ITEMS}</span>
-                                  </div>
-                                </td>
-                                {dataColumns.map((col) => (<td key={col.key} className="dt-cell dt-cell--muted" />))}
-                              </tr>
-
-                              {sOpen && (
+                                  </>
+                                )}
+                              </div>
+                              {drilled && (
                                 <>
-                                  {Array.from({ length: itEnd - itStart }, (_, iidx) => {
-                                    const ii = itStart + iidx
-                                    const item = leafItem(gi, si, ii)
-                                    return (
-                                      <tr className="dt-row" key={item.id}>
-                                        <td className="dt-cell dt-cell--group-spacer" style={{ paddingLeft: 12 + INDENT_STEP * 2 }} />
-                                        {dataColumns.map((col) => (
-                                          <td key={col.key} className="dt-cell"><span className="dt-cell-text">{item[col.key]}</span></td>
-                                        ))}
-                                      </tr>
-                                    )
-                                  })}
-                                  <tr className="dt-micro-row">
-                                    <td className="dt-micro-cell is-leaf dt-micro-tone-2" colSpan={columns.length}>
-                                      <div className="dt-micro-indent" style={{ paddingLeft: 12 + INDENT_STEP * 2 }}>
-                                        <MicroPagination density="sm" label="Items" page={sMicro}
-                                          pageCount={leafMicroCount} total={LEAF_ITEMS}
-                                          summaryWidth={GROUP_COL_WIDTH - (12 + INDENT_STEP * 2)}
-                                          onGoTo={(p) => setMicro(sKey, p, leafMicroCount)} />
-                                      </div>
-                                    </td>
-                                  </tr>
+                                  <span className="dt-split-divider" />
+                                  <button type="button" className="dt-split-close"
+                                    aria-label="Go up one level" title="Go up one level"
+                                    onClick={drillUp}>
+                                    <CloseIcon />
+                                  </button>
                                 </>
                               )}
-                            </Fragment>
-                          )
-                        })}
-                        <tr className="dt-micro-row">
-                          <td className="dt-micro-cell dt-micro-tone-1" colSpan={columns.length}>
-                            <div className="dt-micro-indent" style={{ paddingLeft: 12 + INDENT_STEP }}>
-                              <MicroPagination density="sm" label="Sub-groups" page={gMicro}
-                                pageCount={subMicroCount} total={SUBGROUPS}
-                                summaryWidth={GROUP_COL_WIDTH - (12 + INDENT_STEP)}
-                                onGoTo={(p) => setMicro(gKey, p, subMicroCount)} />
                             </div>
-                          </td>
-                        </tr>
-                      </>
-                    )}
+                          </div>
+                          {gOpen && !drilled && (
+                            <HeaderPager label="Sub-groups" page={subMicro} pageCount={subMicroCount}
+                              total={SUBGROUPS} pageSize={MICRO_PAGE_SIZE}
+                              onGoTo={(p) => setMicro(subMicroKey, p, subMicroCount)} />
+                          )}
+                          {gOpen && drilled && (
+                            <HeaderPager label="Items" page={itMicro} pageCount={leafMicroCount}
+                              total={LEAF_ITEMS} pageSize={MICRO_PAGE_SIZE}
+                              onGoTo={(p) => setMicro(itMicroKey, p, leafMicroCount)} />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+
+                    {gOpen && !drilled &&
+                      Array.from({ length: subEnd - subStart }, (_, sidx) => {
+                        const sIndex = subStart + sidx
+                        const onOpen = () => drillIntoSub(sIndex)
+                        return (
+                          <tr
+                            className="dt-row dt-drill-row"
+                            key={`sub-${gi}-${sIndex}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={onOpen}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                onOpen()
+                              }
+                            }}
+                          >
+                            <td className="dt-cell">
+                              <div className="dt-drill-name" style={{ paddingLeft: 12 + INDENT_STEP }}>
+                                <span className="dt-group-value">{subLabel(sIndex)}</span>
+                                <span className="dt-group-count">{LEAF_ITEMS}</span>
+                              </div>
+                            </td>
+                            {dataColumns.map((col, ci) => (
+                              <td key={col.key} className="dt-cell">
+                                {ci === dataColumns.length - 1 && (
+                                  <span className="dt-drill-caret"><ChevronRight /></span>
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        )
+                      })}
+
+                    {gOpen && drilled &&
+                      Array.from({ length: itEnd - itStart }, (_, iidx) => {
+                        const ii = itStart + iidx
+                        const item = leafItem(gi, si, ii)
+                        return (
+                          <tr className="dt-row" key={item.id}>
+                            <td className="dt-cell dt-cell--group-spacer" style={{ paddingLeft: 12 + INDENT_STEP * 2 }} />
+                            {dataColumns.map((col) => (
+                              <td key={col.key} className="dt-cell"><span className="dt-cell-text">{item[col.key]}</span></td>
+                            ))}
+                          </tr>
+                        )
+                      })}
                   </Fragment>
                 )
               })}

@@ -3,8 +3,9 @@
 import BasicTable from './scenarios/BasicTable.jsx'
 import RowGrouping from './scenarios/RowGrouping.jsx'
 import RowGroupingHeaderPager from './scenarios/RowGroupingHeaderPager.jsx'
-import RowGroupingSingleOpen from './scenarios/RowGroupingSingleOpen.jsx'
 import RowGroupingDrillIn from './scenarios/RowGroupingDrillIn.jsx'
+import RowGroupingHeaderPagerDrillIn from './scenarios/RowGroupingHeaderPagerDrillIn.jsx'
+import RowGroupingAccordionDrillIn from './scenarios/RowGroupingAccordionDrillIn.jsx'
 
 export const scenarios = [
   {
@@ -29,17 +30,24 @@ export const scenarios = [
     component: RowGroupingHeaderPager,
   },
   {
-    path: 'row-grouping-single',
-    title: 'Row Grouping — Single Open',
-    description:
-      'Point 1: only one group and one sub-group open at a time, capping visible micro-pagers at two.',
-    component: RowGroupingSingleOpen,
-  },
-  {
     path: 'row-grouping-drilldown',
     title: 'Row Grouping — Drill In',
     description:
       'Point 5: click a group to navigate into it with a breadcrumb; one level and one pager at a time.',
     component: RowGroupingDrillIn,
+  },
+  {
+    path: 'row-grouping-header-drilldown',
+    title: 'Row Grouping — Header Pager + Drill In',
+    description:
+      'Combination: drilling in populates a split-button row header (Group \u203a Sub-group \u2715) with the level\u2019s pager appended \u2014 only one pager on screen.',
+    component: RowGroupingHeaderPagerDrillIn,
+  },
+  {
+    path: 'row-grouping-accordion-drilldown',
+    title: 'Row Grouping — Accordion Drill In',
+    description:
+      'Primary groups keep the standard footer pager; the group accordion header becomes a split-button breadcrumb with the current level\u2019s pager anchored to it as you drill in.',
+    component: RowGroupingAccordionDrillIn,
   },
 ]

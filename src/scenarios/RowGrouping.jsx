@@ -261,8 +261,9 @@ export default function RowGrouping() {
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
 
-  // Row grouping state.
-  const [expanded, setExpanded] = useState({})
+  // Row grouping state — single-open: one top group and one sub-group at a time.
+  const [openGroup, setOpenGroup] = useState(null)
+  const [openSub, setOpenSub] = useState(null)
   const [microPage, setMicroPage] = useState({})
 
   const toggleSort = (key) => {
@@ -277,9 +278,11 @@ export default function RowGrouping() {
     setOpenFilters((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const toggleExpand = (key) => {
-    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }))
+  const toggleGroup = (gi) => {
+    setOpenGroup((prev) => (prev === gi ? null : gi))
+    setOpenSub(null)
   }
+  const toggleSubgroup = (si) => setOpenSub((prev) => (prev === si ? null : si))
 
   const getMicro = (key) => microPage[key] || 1
   const setMicro = (key, value, count) => {
@@ -403,7 +406,7 @@ export default function RowGrouping() {
               {Array.from({ length: endG - startG }, (_, idx) => {
                 const gi = startG + idx
                 const gKey = `g${gi}`
-                const gOpen = !!expanded[gKey]
+                const gOpen = openGroup === gi
                 const gMicro = getMicro(gKey)
                 const subStart = (gMicro - 1) * MICRO_PAGE_SIZE
                 const subEnd = Math.min(subStart + MICRO_PAGE_SIZE, SUBGROUPS)
@@ -421,7 +424,7 @@ export default function RowGrouping() {
                             className="dt-group-toggle"
                             aria-expanded={gOpen}
                             aria-label={gOpen ? 'Collapse group' : 'Expand group'}
-                            onClick={() => toggleExpand(gKey)}
+                            onClick={() => toggleGroup(gi)}
                           >
                             <span
                               className={`dt-group-chevron ${gOpen ? 'is-open' : ''}`}
@@ -443,7 +446,7 @@ export default function RowGrouping() {
                         {Array.from({ length: subEnd - subStart }, (_, sidx) => {
                           const si = subStart + sidx
                           const sKey = `${gKey}-s${si}`
-                          const sOpen = !!expanded[sKey]
+                          const sOpen = openSub === si
                           const sMicro = getMicro(sKey)
                           const itStart = (sMicro - 1) * MICRO_PAGE_SIZE
                           const itEnd = Math.min(
@@ -468,7 +471,7 @@ export default function RowGrouping() {
                                           ? 'Collapse sub-group'
                                           : 'Expand sub-group'
                                       }
-                                      onClick={() => toggleExpand(sKey)}
+                                      onClick={() => toggleSubgroup(si)}
                                     >
                                       <span
                                         className={`dt-group-chevron ${

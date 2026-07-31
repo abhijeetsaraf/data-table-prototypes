@@ -145,7 +145,9 @@ export default function RowGroupingHeaderPager() {
   const [filters, setFilters] = useState({})
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
-  const [expanded, setExpanded] = useState({})
+  // Single-open: one top group and one sub-group open at a time.
+  const [openGroup, setOpenGroup] = useState(null)
+  const [openSub, setOpenSub] = useState(null)
   const [microPage, setMicroPage] = useState({})
 
   const toggleSort = (key) =>
@@ -155,7 +157,11 @@ export default function RowGroupingHeaderPager() {
       return { key: null, dir: 'asc' }
     })
   const toggleFilter = (key) => setOpenFilters((p) => ({ ...p, [key]: !p[key] }))
-  const toggleExpand = (key) => setExpanded((p) => ({ ...p, [key]: !p[key] }))
+  const toggleGroup = (gi) => {
+    setOpenGroup((prev) => (prev === gi ? null : gi))
+    setOpenSub(null)
+  }
+  const toggleSubgroup = (si) => setOpenSub((prev) => (prev === si ? null : si))
   const getMicro = (key) => microPage[key] || 1
   const setMicro = (key, value, count) =>
     setMicroPage((p) => ({ ...p, [key]: Math.min(Math.max(1, value), count) }))
@@ -248,7 +254,7 @@ export default function RowGroupingHeaderPager() {
               {Array.from({ length: endG - startG }, (_, idx) => {
                 const gi = startG + idx
                 const gKey = `g${gi}`
-                const gOpen = !!expanded[gKey]
+                const gOpen = openGroup === gi
                 const gMicro = getMicro(gKey)
                 const subStart = (gMicro - 1) * MICRO_PAGE_SIZE
                 const subEnd = Math.min(subStart + MICRO_PAGE_SIZE, SUBGROUPS)
@@ -259,7 +265,7 @@ export default function RowGroupingHeaderPager() {
                       <td className="dt-group-cell" colSpan={columns.length}>
                         <div className="dt-group-header" style={{ paddingLeft: 12 }}>
                           <button type="button" className="dt-group-toggle-row"
-                            aria-expanded={gOpen} onClick={() => toggleExpand(gKey)}>
+                            aria-expanded={gOpen} onClick={() => toggleGroup(gi)}>
                             <span className={`dt-group-chevron ${gOpen ? 'is-open' : ''}`}><ChevronRight /></span>
                             <span className="dt-group-value">{topLabel(gi)}</span>
                             <span className="dt-group-count">{SUBGROUPS}</span>
@@ -277,7 +283,7 @@ export default function RowGroupingHeaderPager() {
                       Array.from({ length: subEnd - subStart }, (_, sidx) => {
                         const si = subStart + sidx
                         const sKey = `${gKey}-s${si}`
-                        const sOpen = !!expanded[sKey]
+                        const sOpen = openSub === si
                         const sMicro = getMicro(sKey)
                         const itStart = (sMicro - 1) * MICRO_PAGE_SIZE
                         const itEnd = Math.min(itStart + MICRO_PAGE_SIZE, LEAF_ITEMS)
@@ -288,7 +294,7 @@ export default function RowGroupingHeaderPager() {
                               <td className="dt-group-cell" colSpan={columns.length}>
                                 <div className="dt-group-header" style={{ paddingLeft: 12 + INDENT_STEP }}>
                                   <button type="button" className="dt-group-toggle-row"
-                                    aria-expanded={sOpen} onClick={() => toggleExpand(sKey)}>
+                                    aria-expanded={sOpen} onClick={() => toggleSubgroup(si)}>
                                     <span className={`dt-group-chevron ${sOpen ? 'is-open' : ''}`}><ChevronRight /></span>
                                     <span className="dt-group-value">{subLabel(si)}</span>
                                     <span className="dt-group-count">{LEAF_ITEMS}</span>
