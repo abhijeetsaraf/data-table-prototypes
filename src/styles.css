@@ -1,3 +1,46 @@
+/* ==========================================================================
+   Design tokens — blue-tinted theme + motion
+   Anchors: Actions #DCE6F2, BG #F9FBFD, white canvas. Remaining tints,
+   borders, and text tones are derived variants of the same hue family.
+   ========================================================================== */
+:root {
+  /* Surfaces */
+  --canvas: #ffffff;
+  --surface: #ffffff;
+  --bg-tint: #f9fbfd; /* BG */
+  --bg-tint-strong: #eef4fb;
+
+  /* Action tints (buttons, chips, toggles) */
+  --action: #dce6f2; /* Actions */
+  --action-hover: #cbdcf1;
+  --action-2: #c8d9ee;
+  --action-2-hover: #b7cde8;
+  --action-3: #b6cae5;
+  --action-3-hover: #a4bcdd;
+
+  /* Borders */
+  --border: #d7e1ee;
+  --border-soft: #e7eef7;
+  --border-strong: #a3b4cc;
+
+  /* Accent (active / primary) */
+  --accent: #2b6cb0;
+  --accent-soft: #eaf1f9;
+  --on-accent: #ffffff;
+
+  /* Text */
+  --text: #22303f;
+  --text-muted: #55657a;
+  --text-subtle: #8291a6;
+  --text-disabled: #b9c6d8;
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 0.12s;
+  --dur: 0.2s;
+  --dur-slow: 0.34s;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -5,8 +48,8 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #1a1a1a;
-  background: #fafafa;
+  color: var(--text);
+  background: var(--canvas);
 }
 
 .home,
@@ -35,17 +78,19 @@ h1 {
   flex-direction: column;
   gap: 4px;
   padding: 16px 20px;
-  border: 1px solid #e2e2e2;
+  border: 1px solid var(--border-soft);
   border-radius: 10px;
-  background: #fff;
+  background: var(--surface);
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
 .scenario-list a:hover {
-  border-color: #999;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 14px rgba(43, 108, 176, 0.12);
+  transform: translateY(-1px);
 }
 
 .scenario-title {
@@ -55,17 +100,887 @@ h1 {
 
 .scenario-description {
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .back-link {
   display: inline-block;
   margin-bottom: 24px;
-  color: #555;
+  color: var(--text-muted);
   text-decoration: none;
   font-size: 14px;
+  transition: color var(--dur) var(--ease);
 }
 
 .back-link:hover {
-  color: #000;
+  color: var(--text);
+}
+
+/* ==========================================================================
+   Basic Table (Polar UI) — translated from Figma spec
+   ========================================================================== */
+.dt-scenario {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.dt-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 24px;
+}
+
+/* Table wrapper: flex column, gap 16px, radius 8px */
+.dt-table {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  border-radius: 8px;
+  font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
+}
+
+/* Columns container: white, 1px border, radius 8px */
+.dt-columns {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dt-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+/* --- Header --- */
+.dt-header {
+  box-sizing: border-box;
+  height: 47px;
+  padding: 9px 0 9px 11px;
+  background: var(--bg-tint);
+  border-bottom: 1px solid var(--border-strong);
+  vertical-align: middle;
+  text-align: left;
+}
+
+.dt-header-items {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  height: 28px;
+}
+
+.dt-header-start {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.dt-header-content {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.dt-sort {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(1px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.dt-header-start:hover .dt-sort,
+.dt-sort.is-active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dt-header-end {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 9px 0 0;
+}
+
+/* Filter toggle button: 28x28, radius 6px */
+.dt-filter-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  background: var(--action);
+  border: none;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+.dt-filter-toggle:hover {
+  background: var(--action-hover);
+}
+
+.dt-filter-toggle:active {
+  transform: scale(0.94);
+}
+
+.dt-filter-toggle.is-active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Divider: vertical 1px line */
+.dt-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+}
+
+/* --- Filter row --- */
+.dt-filter-cell {
+  padding: 0 11px 9px;
+  background: var(--bg-tint);
+  border-bottom: 1px solid var(--border-strong);
+  vertical-align: top;
+}
+
+.dt-filter-input {
+  width: 100%;
+  height: 30px;
+  padding: 0 9px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  outline: none;
+  animation: dt-fade-slide var(--dur) var(--ease) both;
+  transition: border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.dt-filter-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* --- Body rows / cells --- */
+.dt-cell {
+  box-sizing: border-box;
+  height: 51px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.dt-row:last-child .dt-cell {
+  border-bottom: none;
+}
+
+.dt-cell-text {
+  display: flex;
+  align-items: center;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--text);
+}
+
+.dt-empty {
+  text-align: center;
+}
+
+.dt-empty .dt-cell-text {
+  justify-content: center;
+  color: var(--text-subtle);
+}
+
+/* --- Footer --- */
+.dt-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+}
+
+/* Page size selector */
+.dt-page-size {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.dt-page-size-label {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.dt-select {
+  position: relative;
+  width: 80px;
+  height: 36px;
+}
+
+.dt-select select {
+  box-sizing: border-box;
+  width: 80px;
+  height: 36px;
+  padding: 0 28px 0 11px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.dt-select select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.dt-select-chevron {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  color: var(--text);
+  pointer-events: none;
+}
+
+/* Pagination */
+.dt-pagination {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+}
+
+/* Buttons: 36x36, radius 6px */
+.dt-page-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 9px;
+  background: var(--action);
+  border: none;
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+.dt-page-btn:hover:not(:disabled) {
+  background: var(--action-hover);
+}
+
+.dt-page-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.dt-page-btn:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.dt-page-label,
+.dt-page-count {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Number field: 80px, radius 6px */
+.dt-number-field {
+  width: 80px;
+  height: 36px;
+}
+
+.dt-number-field input {
+  box-sizing: border-box;
+  width: 80px;
+  height: 36px;
+  padding: 0 11px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+.dt-number-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ==========================================================================
+   Row Grouping — hierarchical rows + micro pagination
+   ========================================================================== */
+
+/* "Grouped by" indicator chips */
+.dt-groupby {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.dt-groupby-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.dt-groupby-chip {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--action);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.dt-groupby-arrow {
+  color: var(--text-subtle);
+}
+
+/* --- Compact top bar + fill-height viewer --- */
+.dt-scenario--fill {
+  max-width: 1180px;
+  height: 100vh;
+  padding: 16px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dt-topbar {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.dt-topbar .back-link {
+  margin: 0;
+}
+
+.dt-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.dt-scenario--fill .dt-subtitle {
+  margin: 0;
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.dt-scenario--fill .dt-groupby {
+  margin: 0;
+}
+
+/* Fill-height table: header sticky top, footer pinned, body scrolls */
+.dt-table--fill {
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 12px;
+}
+
+.dt-table--fill .dt-columns {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dt-table--fill .dt-footer {
+  flex: none;
+}
+
+.dt-table--fill .dt-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  box-shadow: 0 1px 0 var(--border-strong);
+}
+
+.dt-table--fill .dt-filter-cell {
+  position: sticky;
+  top: 47px;
+  z-index: 4;
+  box-shadow: 0 1px 0 var(--border-strong);
+}
+
+/* --- Group header rows --- */
+.dt-group-cell {
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dt-group-row[data-level='0'] .dt-group-cell,
+.dt-group-row[data-level='0'] .dt-cell {
+  background: var(--bg-tint);
+}
+
+.dt-group-row[data-level='1'] .dt-group-cell,
+.dt-group-row[data-level='1'] .dt-cell {
+  background: var(--surface);
+}
+
+.dt-group-row .dt-cell {
+  height: auto;
+}
+
+.dt-cell--muted {
+  border-bottom: 1px solid var(--border);
+}
+
+.dt-cell--group-spacer {
+  border-bottom: 1px solid var(--border);
+}
+
+.dt-group-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding-right: 11px;
+  overflow: hidden;
+}
+
+.dt-group-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dt-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  cursor: pointer;
+  flex: none;
+}
+
+.dt-group-chevron {
+  display: flex;
+  transition: transform var(--dur) var(--ease);
+}
+
+.dt-group-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.dt-group-colname {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+.dt-group-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.dt-group-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--action);
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+/* Group column header (no sort/filter chrome) */
+.dt-header--group .dt-header-content {
+  display: flex;
+  align-items: center;
+  height: 28px;
+}
+
+/* --- Micro pagination rows (sticky to bottom of the scroll area) --- */
+.dt-micro-cell {
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  box-shadow: 0 -1px 0 var(--border-soft);
+}
+
+/* Leaf micro-pagination stacks just above the sub-group control */
+.dt-micro-cell.is-leaf {
+  bottom: 58px;
+  z-index: 1;
+}
+
+.dt-micro-indent {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-right: 11px;
+  animation: dt-fade var(--dur) var(--ease) both;
+}
+
+.dt-micro-pagination {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Tonal hierarchy backfills the full row, not a nested container.
+   0 = main (no backfill), -1 = sub-groups, -2 = leaf items */
+.dt-micro-cell.dt-micro-tone-1 {
+  background: var(--bg-tint-strong);
+}
+
+.dt-micro-cell.dt-micro-tone-2 {
+  background: var(--action);
+}
+
+/* Keep page buttons readable against each row tone */
+.dt-micro-cell.dt-micro-tone-1 .dt-page-btn {
+  background: var(--action);
+}
+
+.dt-micro-cell.dt-micro-tone-1 .dt-page-btn:hover:not(:disabled) {
+  background: var(--action-hover);
+}
+
+.dt-micro-cell.dt-micro-tone-2 .dt-page-btn {
+  background: var(--action-2);
+}
+
+.dt-micro-cell.dt-micro-tone-2 .dt-page-btn:hover:not(:disabled) {
+  background: var(--action-2-hover);
+}
+
+.dt-micro-summary {
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dt-micro-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Density -1 (sub-group level) */
+.dt-micro-sm .dt-page-btn {
+  width: 30px;
+  height: 30px;
+  padding: 7px;
+  background: var(--action);
+}
+
+.dt-micro-sm .dt-page-btn:hover:not(:disabled) {
+  background: var(--action-hover);
+}
+
+.dt-micro-sm .dt-number-field,
+.dt-micro-sm .dt-number-field input {
+  width: 56px;
+  height: 30px;
+}
+
+.dt-micro-sm .dt-number-field input {
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.dt-micro-sm .dt-page-label,
+.dt-micro-sm .dt-page-count,
+.dt-micro-sm .dt-micro-summary {
+  font-size: 13px;
+}
+
+/* Density -2 (leaf item level) */
+.dt-micro-xs .dt-page-btn {
+  width: 26px;
+  height: 26px;
+  padding: 6px;
+  background: var(--action-2);
+}
+
+.dt-micro-xs .dt-page-btn:hover:not(:disabled) {
+  background: var(--action-2-hover);
+}
+
+.dt-micro-xs .dt-number-field,
+.dt-micro-xs .dt-number-field input {
+  width: 48px;
+  height: 26px;
+}
+
+.dt-micro-xs .dt-number-field input {
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.dt-micro-xs .dt-page-label,
+.dt-micro-xs .dt-page-count,
+.dt-micro-xs .dt-micro-summary {
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   Variant: Header-anchored pager (Option 2)
+   ========================================================================== */
+.dt-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 44px;
+  padding-right: 11px;
+}
+
+.dt-group-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dt-group-toggle-row .dt-group-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Inline pager sitting on the group header row */
+.dt-pager-inline {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  animation: dt-fade-slide var(--dur) var(--ease) both;
+}
+
+.dt-pager-sm {
+  background: var(--bg-tint-strong);
+}
+
+.dt-pager-xs {
+  background: var(--action);
+}
+
+.dt-pager-summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.dt-pager-page {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.dt-pager-inline .dt-page-btn {
+  width: 26px;
+  height: 26px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.dt-pager-inline .dt-page-btn:hover:not(:disabled) {
+  background: var(--bg-tint-strong);
+}
+
+.dt-pager-xs .dt-page-btn {
+  width: 24px;
+  height: 24px;
+  padding: 5px;
+}
+
+/* ==========================================================================
+   Variant: Drill-in navigation (Point 5)
+   ========================================================================== */
+.dt-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-height: 28px;
+}
+
+.dt-crumb {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.dt-crumb:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.dt-crumb.is-current,
+.dt-crumb:disabled {
+  color: var(--text);
+  cursor: default;
+}
+
+.dt-crumb-sep {
+  display: inline-flex;
+  color: var(--text-subtle);
+}
+
+.dt-drill-row {
+  cursor: pointer;
+}
+
+.dt-drill-row:hover .dt-cell {
+  background: var(--bg-tint-strong);
+}
+
+.dt-drill-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.dt-drill-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dt-drill-caret {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  color: var(--text-subtle);
+}
+
+/* ==========================================================================
+   Motion — accordion reveals + state-change entrances
+   ========================================================================== */
+@keyframes dt-fade-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Rows animate in on mount: accordion expand, pagination, and drill-in
+   navigation all remount their rows, so each transition gets a soft reveal.
+   Group/leaf rows use a fade + slide; sticky micro/pager rows fade via their
+   inner content to avoid breaking position: sticky. */
+.dt-group-row,
+.dt-row {
+  animation: dt-fade-slide var(--dur) var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
