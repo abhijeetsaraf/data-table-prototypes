@@ -118,6 +118,366 @@ h1 {
 }
 
 /* ==========================================================================
+   Scenario shell — left presentation/control panel + table area
+   The panel stacks top-down (back + heading, description, then a "Table
+   Controls" block anchored toward the bottom). Global controls here restyle
+   every table through the shared cell classes.
+   ========================================================================== */
+.dt-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  min-height: 100vh;
+}
+
+.dt-layout--fill {
+  align-items: stretch;
+  max-width: none;
+  height: 100vh;
+  min-height: 0;
+  padding: 32px;
+  gap: 32px;
+}
+
+/* Left panel */
+.dt-panel {
+  flex: none;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Non-fill: pin the panel to a stable viewport height so the controls card
+   never shifts vertically when the table's height changes (e.g. density
+   toggle). In the fill layout the panel already spans the full 100vh. */
+.dt-layout:not(.dt-layout--fill) .dt-panel {
+  position: sticky;
+  top: 48px;
+  height: calc(100vh - 96px);
+}
+
+.dt-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dt-panel .back-link {
+  margin: 0;
+}
+
+.dt-panel-title {
+  margin: 4px 0 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.dt-panel-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.dt-panel-groupby {
+  flex-wrap: wrap;
+  margin: 4px 0 0;
+}
+
+.dt-groupby-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Controls live in their own card, anchored to the bottom of the panel. The
+   "much gap" above is the auto margin; because the panel height is stable, the
+   card holds its position when controls are toggled. */
+.dt-panel-controls {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(34, 48, 63, 0.05);
+}
+
+.dt-controls-heading {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+
+/* Sub-group heading inside the same controls card (e.g. Item Control Bar),
+   separated from the group above by a hairline rule. */
+.dt-controls-heading--sub {
+  margin: 0 0 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.dt-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-tint);
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+}
+
+.dt-control-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dt-control-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dt-control-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-subtle);
+}
+
+/* Simple control: a single label + toggle, no helper description. */
+.dt-control--simple {
+  padding: 10px 14px;
+}
+
+.dt-control--simple .dt-control-label {
+  min-width: 0;
+}
+
+/* Toggle switch */
+.dt-switch {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.dt-switch-track {
+  display: block;
+  width: 40px;
+  height: 24px;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background-color var(--dur) var(--ease);
+}
+
+.dt-switch-thumb {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(34, 48, 63, 0.25);
+  transition: transform var(--dur) var(--ease);
+}
+
+.dt-switch.is-on .dt-switch-track {
+  background: var(--accent);
+}
+
+.dt-switch.is-on .dt-switch-thumb {
+  transform: translateX(16px);
+}
+
+.dt-switch:focus-visible .dt-switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Table area */
+.dt-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dt-layout--fill .dt-main {
+  min-height: 0;
+}
+
+/* ==========================================================================
+   Item Control Bar — the table header that sits directly above the table.
+   Left ("Start") surfaces the heading / description / item count; right
+   ("End") holds the Export split button. Visibility of the left content is
+   driven by the toggles in the shared control panel.
+   ========================================================================== */
+.dt-icb {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 40px;
+  padding: 4px 4px 16px;
+}
+
+.dt-icb-start {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dt-icb-heading {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.dt-icb-desc {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.dt-icb-count {
+  font-size: 14px;
+  line-height: 16px;
+  color: var(--text);
+}
+
+.dt-icb-heading + .dt-icb-count,
+.dt-icb-desc + .dt-icb-count {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.dt-icb-end {
+  flex: none;
+}
+
+/* Export split button + its dropdown menu */
+.dt-export {
+  position: relative;
+}
+
+.dt-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: var(--action);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 16px;
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.dt-export-btn:hover {
+  background: var(--action-hover);
+}
+
+.dt-export-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dt-export-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+}
+
+.dt-export-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: transform var(--dur) var(--ease);
+}
+
+.dt-export[data-open='true'] .dt-export-caret {
+  transform: rotate(180deg);
+}
+
+.dt-export-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 244px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(34, 48, 63, 0.14);
+  animation: dt-fade-slide var(--dur) var(--ease) both;
+}
+
+.dt-export-menu li {
+  margin: 0;
+}
+
+.dt-export-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.dt-export-option:hover {
+  background: var(--accent-soft);
+}
+
+.dt-export-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.dt-export-option-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dt-export-option-meta {
+  font-size: 12px;
+  color: var(--text-subtle);
+}
+
+/* ==========================================================================
    Basic Table (Polar UI) — translated from Figma spec
    ========================================================================== */
 .dt-scenario {
@@ -256,11 +616,45 @@ h1 {
   color: var(--on-accent);
 }
 
-/* Divider: vertical 1px line */
+/* Divider: vertical 1px line that doubles as the column resize handle. */
 .dt-divider {
+  position: relative;
+  flex: none;
   width: 1px;
   height: 28px;
   background: var(--border);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+/* Expanded, invisible grab area around the 1px line so it's easy to hit.
+   Biased toward the column edge and kept clear of the filter button. */
+.dt-divider::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  bottom: -9px;
+  left: -3px;
+  right: -8px;
+}
+
+/* Accent overlay shown on hover / during an active drag (no layout shift). */
+.dt-divider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: transparent;
+  transition: background-color var(--dur) var(--ease);
+}
+
+.dt-divider:hover::after,
+body.dt-resizing .dt-divider:hover::after {
+  background: var(--accent);
 }
 
 /* --- Filter row --- */
@@ -313,6 +707,21 @@ h1 {
   font-size: 14px;
   line-height: 16px;
   color: var(--text);
+}
+
+/* Single-line truncation with ellipsis. Paired with the TruncatingCell
+   component, which only surfaces a tooltip while the text is actually
+   clipped — so widening a column reveals more text and drops the tooltip. */
+.dt-cell-text.dt-truncate {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dt-cell-text.dt-strong {
+  font-weight: 600;
 }
 
 .dt-empty {
@@ -573,11 +982,10 @@ h1 {
   border-bottom: 1px solid var(--border);
 }
 
+/* Group rows are intentionally not color-coded per level; they read as plain
+   rows distinguished only by the bold label, chevron and count. */
 .dt-group-row[data-level='0'] .dt-group-cell,
-.dt-group-row[data-level='0'] .dt-cell {
-  background: var(--bg-tint);
-}
-
+.dt-group-row[data-level='0'] .dt-cell,
 .dt-group-row[data-level='1'] .dt-group-cell,
 .dt-group-row[data-level='1'] .dt-cell {
   background: var(--surface);
@@ -604,9 +1012,18 @@ h1 {
   overflow: hidden;
 }
 
-.dt-group-value {
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* The group label truncates within the space left by the toggle + count. */
+.dt-group-inner .dt-truncate,
+.dt-drill-name .dt-truncate,
+.dt-group-toggle-row .dt-truncate {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dt-group-inner .dt-group-count,
+.dt-drill-name .dt-group-count,
+.dt-group-toggle-row .dt-group-count {
+  flex: none;
 }
 
 .dt-group-toggle {
@@ -1089,6 +1506,57 @@ h1 {
 }
 
 /* ==========================================================================
+   Density — global compact mode
+   Driven by [data-density="dense"] on the layout root so a single control
+   restyles every table built on the shared cell classes. Text stays at a
+   legible size; only the vertical rhythm tightens so more rows fit on screen.
+   ========================================================================== */
+.dt-header,
+.dt-cell,
+.dt-group-inner {
+  transition: height var(--dur) var(--ease), padding var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
+}
+
+[data-density='dense'] .dt-header {
+  height: 38px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+[data-density='dense'] .dt-cell {
+  height: 34px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+[data-density='dense'] .dt-cell-text {
+  font-size: 13px;
+}
+
+[data-density='dense'] .dt-group-inner,
+[data-density='dense'] .dt-group-header {
+  height: 34px;
+}
+
+[data-density='dense'] .dt-filter-cell {
+  padding-bottom: 6px;
+}
+
+/* ==========================================================================
+   Striped rows — zebra striping on final item rows only
+   Driven by [data-striped="on"] on the layout root, mirroring the density
+   control. Only leaf/final item rows opt in via `.dt-row--alt` (added in JS
+   from each row's index) so parity is correct even in grouped tables where
+   group-header and micro-pager rows are interleaved as siblings — CSS
+   `nth-child` can't skip those, so the parity is computed per render site.
+   Group/parent rows are never striped.
+   ========================================================================== */
+[data-striped='on'] .dt-row--alt .dt-cell {
+  background: var(--bg-tint);
+}
+
+/* ==========================================================================
    Motion — accordion reveals + state-change entrances
    ========================================================================== */
 @keyframes dt-fade-slide {
@@ -1118,6 +1586,87 @@ h1 {
 .dt-group-row,
 .dt-row {
   animation: dt-fade-slide var(--dur) var(--ease) both;
+}
+
+/* ==========================================================================
+   Column resizing — the visible header divider is the drag handle
+   Each data/group header carries a 1px divider (`.dt-divider`) that doubles as
+   the resize handle. Dragging updates the column's pixel width in state; the
+   table width is the sum of columns, so the scroll container gains horizontal
+   scroll when columns are widened.
+   ========================================================================== */
+
+/* While dragging, keep the resize cursor everywhere and suppress selection. */
+body.dt-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* The grid is sized to the sum of its columns (set inline). Let the columns
+   container scroll horizontally when that exceeds the viewport. */
+.dt-table--fill .dt-columns {
+  overflow: auto;
+}
+
+/* Keep the pagers that live INSIDE the scrollable table pinned to the right
+   edge of the scroll area, so they stay on screen regardless of how far the
+   table content is scrolled horizontally. The right offset matches the header
+   row / micro-row right padding, so the pager lands in its natural spot once
+   the table is scrolled fully right. Pagers that live in the drillbar or
+   footer (Drill In variants) are outside the scroll area and unaffected. */
+.dt-group-header .dt-pager-inline {
+  position: sticky;
+  right: 11px;
+  z-index: 3;
+}
+
+.dt-micro-controls {
+  position: sticky;
+  right: 11px;
+  z-index: 3;
+}
+
+/* ==========================================================================
+   Deeper group nesting — group rows stay neutral (no per-level color coding)
+   ========================================================================== */
+.dt-group-row[data-level='2'] .dt-group-cell,
+.dt-group-row[data-level='2'] .dt-cell,
+.dt-group-row[data-level='3'] .dt-group-cell,
+.dt-group-row[data-level='3'] .dt-cell {
+  background: var(--surface);
+}
+
+/* ==========================================================================
+   Micro-pagination — deeper tone steps + stable row height so the sticky
+   pagers stack cleanly (each level's pager gets an inline `bottom` offset
+   that is a multiple of this height).
+   ========================================================================== */
+.dt-micro-cell {
+  height: 47px;
+}
+
+.dt-micro-cell.dt-micro-tone-3 {
+  background: var(--action-2);
+}
+
+.dt-micro-cell.dt-micro-tone-4 {
+  background: var(--action-3);
+}
+
+.dt-micro-cell.dt-micro-tone-3 .dt-page-btn {
+  background: var(--action-2);
+}
+
+.dt-micro-cell.dt-micro-tone-3 .dt-page-btn:hover:not(:disabled) {
+  background: var(--action-2-hover);
+}
+
+.dt-micro-cell.dt-micro-tone-4 .dt-page-btn {
+  background: var(--action-3);
+}
+
+.dt-micro-cell.dt-micro-tone-4 .dt-page-btn:hover:not(:disabled) {
+  background: var(--action-3-hover);
 }
 
 @media (prefers-reduced-motion: reduce) {

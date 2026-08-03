@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import ScenarioShell from '../components/ScenarioShell.jsx'
 
 // ---------------------------------------------------------------------------
 // Column definitions
@@ -212,14 +212,10 @@ export default function BasicTable() {
   const anyFilterOpen = columns.some((col) => openFilters[col.key])
 
   return (
-    <main className="dt-scenario">
-      <Link to="/" className="back-link">← Back</Link>
-      <h1>Basic Table</h1>
-      <p className="dt-subtitle">
-        Polar UI data table with sorting, per-column filtering, page size
-        selection, and pagination.
-      </p>
-
+    <ScenarioShell
+      title="Basic Table"
+      description="Polar UI data table with sorting, per-column filtering, page size selection, and pagination."
+    >
       <div className="dt-table">
         <div className="dt-columns">
           <table className="dt-grid">
@@ -256,7 +252,6 @@ export default function BasicTable() {
                             }`}
                             aria-label={`Filter ${col.label}`}
                             aria-pressed={isFilterOpen}
-                            onClick={() => toggleFilter(col.key)}
                           >
                             <FilterIcon />
                           </button>
@@ -286,8 +281,11 @@ export default function BasicTable() {
               )}
             </thead>
             <tbody>
-              {pageRows.map((row) => (
-                <tr key={row.id} className="dt-row">
+              {pageRows.map((row, idx) => (
+                <tr
+                  key={row.id}
+                  className={`dt-row ${idx % 2 === 1 ? 'dt-row--alt' : ''}`}
+                >
                   {columns.map((col) => (
                     <td key={col.key} className="dt-cell">
                       <span className="dt-cell-text">{row[col.key]}</span>
@@ -382,6 +380,6 @@ export default function BasicTable() {
           </div>
         </div>
       </div>
-    </main>
+    </ScenarioShell>
   )
 }
