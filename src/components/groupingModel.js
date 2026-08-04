@@ -66,6 +66,22 @@ export const levelTotal = (level) =>
 // How many children a node at `level` has (i.e. the count one level deeper).
 export const childCountAt = (level) => levelTotal(level + 1)
 
+// --- Order-aware helpers -----------------------------------------------------
+// The scenarios above use a fixed hierarchy order. The "custom" scenario lets a
+// user pick which dimensions to group by and in what sequence, so these helpers
+// resolve a level by its position in a caller-supplied `order` (an array of
+// dimension keys) instead of the module-level LEVELS order. Because each
+// dimension's label/count is parent-independent, reordering is just a lookup.
+export const LEVEL_BY_KEY = Object.fromEntries(LEVELS.map((l) => [l.key, l]))
+export const orderedLevelName = (order, depth) =>
+  depth < order.length ? LEVEL_BY_KEY[order[depth]].name : 'Member'
+export const orderedLevelLabel = (order, depth, index) =>
+  LEVEL_BY_KEY[order[depth]].label(index)
+export const orderedLevelTotal = (order, depth) =>
+  depth < order.length ? LEVEL_BY_KEY[order[depth]].count : LEAF_COUNT
+export const orderedChildCountAt = (order, depth) =>
+  orderedLevelTotal(order, depth + 1)
+
 // --- Columns -----------------------------------------------------------------
 // Each data column carries a default pixel width used to seed the resizable
 // col widths. The "group" column holds the hierarchical group names.
@@ -132,6 +148,62 @@ const statuses = ['Active', 'Invited', 'Suspended', 'Pending']
 const lastActive = [
   'Just now', '2h ago', '5h ago', '1d ago', '3d ago', '1w ago', '2w ago',
 ]
+
+// ---------------------------------------------------------------------------
+// Flat dataset + real grouping
+//
+// A single deterministic flat list of members, each carrying the four grouping
+// dimensions as fields plus the data columns. This is the dataset used by the
+// "custom" scenario: the default (ungrouped) view lists these rows directly,
+// and applying a Group By derives the hierarchy from these same rows — so the
+// flat and grouped views always reconcile.
+// ---------------------------------------------------------------------------
+export const FLAT_COUNT = 300
+
+export const flatMembers = Array.from({ length: FLAT_COUNT }, (_, i) => {
+  const first = firstNames[(i * 13 + 5) % firstNames.length]
+  const last = lastNames[(i * 7 + 3) % lastNames.length]
+  return {
+    id: `m-${i}`,
+    region: regions[(i * 5 + 1) % regions.length],
+    unit: units[(i * 3 + 2) % units.length],
+    team: teams[(i * 11 + 4) % teams.length],
+    role: roles[(i * 17 + 6) % roles.length],
+    name: `${first} ${last}`,
+    title: titles[(i * 2 + 1) % titles.length],
+    email: `${first.toLowerCase()}.${last.toLowerCase()}${i % 9}@highspot.com`,
+    description: descriptions[(i * 3 + 2) % descriptions.length],
+    status: statuses[i % statuses.length],
+    lastActive: lastActive[(i * 2) % lastActive.length],
+  }
+})
+
+// Build a nested group tree from flat rows, grouping by `orderKeys` in order.
+// Leaf nodes carry their members; group nodes carry sorted children with the
+// member count beneath each. Child order is stable (alphabetical) so drill
+// indices stay valid across renders.
+export function buildGroupTree(rows, orderKeys) {
+  const build = (subset, depth) => {
+    if (depth === orderKeys.length) {
+      return { isLeaf: true, members: subset }
+    }
+    const key = orderKeys[depth]
+    const buckets = new Map()
+    for (const row of subset) {
+      const value = row[key]
+      if (!buckets.has(value)) buckets.set(value, [])
+      buckets.get(value).push(row)
+    }
+    const children = [...buckets.keys()]
+      .sort((a, b) => String(a).localeCompare(String(b)))
+      .map((label) => {
+        const members = buckets.get(label)
+        return { label, count: members.length, child: build(members, depth + 1) }
+      })
+    return { isLeaf: false, children }
+  }
+  return build(rows, 0)
+}
 
 // Deterministic leaf item from a full 4-index group path + item index.
 export function leafItem(parentPath, ii) {

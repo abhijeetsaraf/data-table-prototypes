@@ -34,6 +34,15 @@
   --text-subtle: #8291a6;
   --text-disabled: #b9c6d8;
 
+  /* Table Controls tint — a light orange family used ONLY for the prototype's
+     "Table Controls" card, so it reads as tooling separate from the product. */
+  --ctrl-bg: #fdf4ec;
+  --ctrl-bg-inner: #fbe9d7;
+  --ctrl-border: #f0d1af;
+  --ctrl-border-soft: #f6e2ca;
+  --ctrl-accent: #e07b39;
+  --ctrl-text-subtle: #a9764a;
+
   /* Motion */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --dur-fast: 0.12s;
@@ -199,30 +208,112 @@ h1 {
    card holds its position when controls are toggled. */
 .dt-panel-controls {
   margin-top: auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  gap: 8px;
+  padding: 12px;
+  background: var(--ctrl-bg);
+  border: 1px solid var(--ctrl-border);
   border-radius: 12px;
-  box-shadow: 0 1px 2px rgba(34, 48, 63, 0.05);
+  box-shadow: 0 1px 2px rgba(224, 123, 57, 0.08);
+}
+
+/* ==========================================================================
+   Table Controls — orange-tinted so the prototype's control card reads as
+   tooling that is separate from the product interface. Scoped to
+   `.dt-panel-controls` so no table styling is affected.
+   ========================================================================== */
+.dt-panel-controls .dt-controls-heading {
+  color: var(--ctrl-text-subtle);
+}
+
+.dt-panel-controls .dt-controls-caret {
+  color: var(--ctrl-accent);
+}
+
+.dt-panel-controls .dt-controls-heading--sub {
+  border-top-color: var(--ctrl-border-soft);
+}
+
+.dt-panel-controls .dt-control {
+  background: var(--ctrl-bg-inner);
+  border-color: var(--ctrl-border-soft);
+}
+
+.dt-panel-controls .dt-control-desc {
+  color: var(--ctrl-text-subtle);
+}
+
+.dt-panel-controls .dt-switch.is-on .dt-switch-track {
+  background: var(--ctrl-accent);
+}
+
+.dt-panel-controls .dt-switch:focus-visible .dt-switch-track {
+  outline-color: var(--ctrl-accent);
+}
+
+/* Collapsed: card shrinks to just the toggle header. */
+.dt-panel-controls.is-collapsed {
+  margin-top: auto;
+}
+
+/* Card header doubles as the minimize/expand toggle. */
+.dt-controls-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+}
+
+.dt-controls-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-subtle);
+  transition: transform var(--dur) var(--ease);
+}
+
+.dt-controls-caret.is-open {
+  transform: rotate(180deg);
+}
+
+/* Scrollable list of controls; scrolls internally when the card is too tall
+   for the panel, so adding more controls never pushes the card off-screen. */
+.dt-controls-body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  animation: dt-fade-slide var(--dur) var(--ease) both;
 }
 
 .dt-controls-heading {
-  margin: 0 0 4px;
-  font-size: 12px;
+  margin: 0 0 2px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-subtle);
 }
 
+.dt-controls-toggle .dt-controls-heading {
+  margin: 0;
+}
+
 /* Sub-group heading inside the same controls card (e.g. Item Control Bar),
    separated from the group above by a hairline rule. */
 .dt-controls-heading--sub {
-  margin: 0 0 4px;
-  padding-top: 14px;
+  margin: 0 0 2px;
+  padding-top: 8px;
   border-top: 1px solid var(--border-soft);
 }
 
@@ -230,35 +321,35 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 10px;
+  padding: 7px 10px;
   background: var(--bg-tint);
   border: 1px solid var(--border-soft);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .dt-control-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .dt-control-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text);
 }
 
 .dt-control-desc {
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.35;
   color: var(--text-subtle);
 }
 
 /* Simple control: a single label + toggle, no helper description. */
 .dt-control--simple {
-  padding: 10px 14px;
+  padding: 5px 10px;
 }
 
 .dt-control--simple .dt-control-label {
@@ -276,8 +367,8 @@ h1 {
 
 .dt-switch-track {
   display: block;
-  width: 40px;
-  height: 24px;
+  width: 32px;
+  height: 18px;
   padding: 2px;
   border-radius: 999px;
   background: var(--border-strong);
@@ -286,8 +377,8 @@ h1 {
 
 .dt-switch-thumb {
   display: block;
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--surface);
   box-shadow: 0 1px 2px rgba(34, 48, 63, 0.25);
@@ -299,10 +390,184 @@ h1 {
 }
 
 .dt-switch.is-on .dt-switch-thumb {
-  transform: translateX(16px);
+  transform: translateX(14px);
 }
 
 .dt-switch:focus-visible .dt-switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Standalone panel card for scenario-specific controls, kept separate from the
+   collapsible "Table Controls" card. */
+.dt-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(34, 48, 63, 0.05);
+}
+
+/* Group by builder — sequenced checkbox list + commit button */
+/* Sequence preview reuses the accordion drill breadcrumb (.dt-split) as one full
+   container that wraps internally in the narrow panel. The remove (×) button is
+   glued to the end of the last crumb rather than pinned to the container edge. */
+.dt-gb-split {
+  display: flex;
+  width: 100%;
+  margin: 2px 0;
+}
+
+.dt-gb-split .dt-split-main {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+/* Last crumb + remove button travel together when the sequence wraps. */
+.dt-gb-last {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Compact, rounded remove button sized to sit neatly inside the breadcrumb. */
+.dt-gb-x {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.dt-gb-x:hover {
+  color: var(--text);
+  background: var(--action);
+}
+
+.dt-gb-x:active {
+  transform: scale(0.94);
+}
+
+.dt-gb-hint {
+  margin: 0 0 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text-subtle);
+}
+
+.dt-gb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dt-gb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  background: var(--bg-tint);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition: background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.dt-gb-item:hover {
+  background: var(--action);
+}
+
+.dt-gb-item.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dt-gb-check {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: #fff;
+}
+
+.dt-gb-check.is-on {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.dt-gb-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Reset (secondary) + Create groups (primary), side by side. */
+.dt-gb-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dt-gb-apply,
+.dt-gb-reset {
+  flex: 1 1 auto;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+.dt-gb-apply {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.dt-gb-reset {
+  flex: 0 0 auto;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dt-gb-reset:hover:not(:disabled) {
+  background: var(--action);
+}
+
+.dt-gb-apply:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.dt-gb-apply:disabled,
+.dt-gb-reset:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dt-gb-apply:focus-visible,
+.dt-gb-reset:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -1111,15 +1376,17 @@ body.dt-resizing .dt-divider:hover::after {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding: 6px 8px;
+  border-radius: 8px;
 }
 
-/* Tonal hierarchy backfills the full row, not a nested container.
-   0 = main (no backfill), -1 = sub-groups, -2 = leaf items */
-.dt-micro-cell.dt-micro-tone-1 {
+/* Tonal hierarchy tints only the pagination component, not the full-width
+   sticky strip. 0 = main (no tint), 1 = sub-groups, 2 = leaf items */
+.dt-micro-cell.dt-micro-tone-1 .dt-micro-pagination {
   background: var(--bg-tint-strong);
 }
 
-.dt-micro-cell.dt-micro-tone-2 {
+.dt-micro-cell.dt-micro-tone-2 .dt-micro-pagination {
   background: var(--action);
 }
 
@@ -1645,11 +1912,11 @@ body.dt-resizing {
   height: 47px;
 }
 
-.dt-micro-cell.dt-micro-tone-3 {
+.dt-micro-cell.dt-micro-tone-3 .dt-micro-pagination {
   background: var(--action-2);
 }
 
-.dt-micro-cell.dt-micro-tone-4 {
+.dt-micro-cell.dt-micro-tone-4 .dt-micro-pagination {
   background: var(--action-3);
 }
 

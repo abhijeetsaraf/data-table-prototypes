@@ -6,6 +6,7 @@ import RowGroupingHeaderPager from './scenarios/RowGroupingHeaderPager.jsx'
 import RowGroupingDrillIn from './scenarios/RowGroupingDrillIn.jsx'
 import RowGroupingHeaderPagerDrillIn from './scenarios/RowGroupingHeaderPagerDrillIn.jsx'
 import RowGroupingAccordionDrillIn from './scenarios/RowGroupingAccordionDrillIn.jsx'
+import RowGroupingAccordionDrillInCustom from './scenarios/RowGroupingAccordionDrillInCustom.jsx'
 
 export const scenarios = [
   {
@@ -49,5 +50,12 @@ export const scenarios = [
     description:
       'Primary groups keep the standard footer pager; the group accordion header becomes a split-button breadcrumb with the current level\u2019s pager anchored to it as you drill in.',
     component: RowGroupingAccordionDrillIn,
+  },
+  {
+    path: 'row-grouping-accordion-drilldown-custom',
+    title: 'Row Grouping — Accordion Drill In (Custom)',
+    description:
+      'Same accordion drill-in, but the hierarchy is user-defined: pick dimensions in sequence in the left panel and click Create groups. Groups open straight to the last leaf.',
+    component: RowGroupingAccordionDrillInCustom,
   },
 ]

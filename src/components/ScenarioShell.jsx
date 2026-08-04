@@ -15,7 +15,7 @@ export function useDensity() {
   return useContext(DensityContext)
 }
 
-function ToggleSwitch({ on, onChange, label }) {
+export function ToggleSwitch({ on, onChange, label }) {
   return (
     <button
       type="button"
@@ -32,11 +32,11 @@ function ToggleSwitch({ on, onChange, label }) {
   )
 }
 
-function GroupByChips({ groupBy }) {
+export function GroupByChips({ groupBy, label = 'Grouped by' }) {
   if (!groupBy || groupBy.length === 0) return null
   return (
     <div className="dt-groupby dt-panel-groupby">
-      <span className="dt-groupby-label">Grouped by</span>
+      <span className="dt-groupby-label">{label}</span>
       {groupBy.map((dim, i) => (
         <span key={`${dim}-${i}`} className="dt-groupby-inline">
           <span className="dt-groupby-chip">{dim}</span>
@@ -216,6 +216,8 @@ export default function ScenarioShell({
   groupBy,
   fill = false,
   controls,
+  panelExtras,
+  controlsDefaultOpen = true,
   loadedCount = 50,
   totalCount = 1234,
   children,
@@ -225,6 +227,7 @@ export default function ScenarioShell({
   const [showCount, setShowCount] = useState(true)
   const [showHeading, setShowHeading] = useState(false)
   const [showDescription, setShowDescription] = useState(false)
+  const [controlsOpen, setControlsOpen] = useState(controlsDefaultOpen)
   const ctx = useMemo(() => ({ dense, setDense }), [dense])
 
   return (
@@ -242,9 +245,34 @@ export default function ScenarioShell({
             <GroupByChips groupBy={groupBy} />
           </div>
 
-          <div className="dt-panel-controls">
-            <h2 className="dt-controls-heading">Table Controls</h2>
+          {panelExtras && (
+            <div className="dt-panel-section">{panelExtras}</div>
+          )}
 
+          <div
+            className={`dt-panel-controls ${
+              controlsOpen ? '' : 'is-collapsed'
+            }`}
+          >
+            <button
+              type="button"
+              className="dt-controls-toggle"
+              aria-expanded={controlsOpen}
+              aria-controls="dt-controls-body"
+              onClick={() => setControlsOpen((o) => !o)}
+            >
+              <span className="dt-controls-heading">Table Controls</span>
+              <span
+                className={`dt-controls-caret ${
+                  controlsOpen ? 'is-open' : ''
+                }`}
+              >
+                <ChevronDown />
+              </span>
+            </button>
+
+            {controlsOpen && (
+              <div className="dt-controls-body" id="dt-controls-body">
             <div className="dt-control">
               <span className="dt-control-text">
                 <span className="dt-control-label">Density</span>
@@ -292,7 +320,9 @@ export default function ScenarioShell({
               />
             </div>
 
-            {controls}
+                {controls}
+              </div>
+            )}
           </div>
         </aside>
 
