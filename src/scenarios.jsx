@@ -7,6 +7,7 @@ import RowGroupingDrillIn from './scenarios/RowGroupingDrillIn.jsx'
 import RowGroupingHeaderPagerDrillIn from './scenarios/RowGroupingHeaderPagerDrillIn.jsx'
 import RowGroupingAccordionDrillIn from './scenarios/RowGroupingAccordionDrillIn.jsx'
 import RowGroupingAccordionDrillInCustom from './scenarios/RowGroupingAccordionDrillInCustom.jsx'
+import RowGroupingCommandNested from './scenarios/RowGroupingCommandNested.jsx'
 
 export const scenarios = [
   {
@@ -57,5 +58,12 @@ export const scenarios = [
     description:
       'Same accordion drill-in, but the hierarchy is user-defined: pick dimensions in sequence in the left panel and click Create groups. Groups open straight to the last leaf.',
     component: RowGroupingAccordionDrillInCustom,
+  },
+  {
+    path: 'row-grouping-command-nested',
+    title: 'Row Grouping \u2014 Command Palette + Nested Accordion',
+    description:
+      'Recommended combo: a searchable, hundreds-deep group-by menu (A3) that resolves into a nested multi-level accordion where every level stays visible with per-level pagers (B4).',
+    component: RowGroupingCommandNested,
   },
 ]
