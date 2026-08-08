@@ -2,10 +2,10 @@ import { Fragment, useMemo, useState } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast, CloseIcon,
-  TruncatingCell, useColumnResize, ColGroup, GridHead,
+  TruncatingCell, useColumnResize, useColumnVisibility, ColGroup, GridHead,
 } from '../components/tableKit.jsx'
 import {
-  columns, dataColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
+  columns as allColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
   FLAT_COUNT, LEVEL_BY_KEY, flatMembers, leafItem,
 } from '../components/groupingModel.js'
 
@@ -272,6 +272,7 @@ export default function RowGroupingCommandNested() {
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
   const { widths, startResize } = useColumnResize(defaultWidths)
+  const { columns, dataColumns } = useColumnVisibility('row-grouping-command-nested', allColumns)
 
   // Committed group-by sequence (tokens) vs. the draft being assembled.
   const [tokens, setTokens] = useState([])
@@ -314,7 +315,7 @@ export default function RowGroupingCommandNested() {
   }
   const createGroups = (order) => {
     setTokens(order)
-    setExpandDepth(Math.min(2, order.length))
+    setExpandDepth(order.length) // always auto-expand every level down to the leaf
     resetGroupState()
   }
   const resetAll = () => {
@@ -343,7 +344,7 @@ export default function RowGroupingCommandNested() {
       return 0
     })
     return rows
-  }, [filters, sort])
+  }, [filters, sort, dataColumns])
 
   const activeColumns = grouped ? columns : dataColumns
   const minWidth = activeColumns.reduce((sum, col) => sum + widths[col.key], 0)
@@ -431,6 +432,8 @@ export default function RowGroupingCommandNested() {
       title="Row Grouping — Command Palette + Nested Accordion"
       description="Search a hundreds-deep group-by menu (A3), then read the result as a nested multi-level accordion where every level stays visible (B4)."
       groupBy={grouped ? tokens.map((t) => t.name) : undefined}
+      columns={allColumns}
+      tableId="row-grouping-command-nested"
       controlsDefaultOpen={false}
       panelExtras={
         <CommandPaletteBuilder
@@ -464,7 +467,7 @@ export default function RowGroupingCommandNested() {
     >
       <div className="dt-table dt-table--fill">
         <div className="dt-columns">
-          <table className="dt-grid" style={{ width: '100%', minWidth: `${minWidth}px` }}>
+          <table className={`dt-grid ${grouped ? 'dt-grid--pin' : ''}`} style={{ width: '100%', minWidth: `${minWidth}px` }}>
             <ColGroup columns={activeColumns} widths={widths} />
             <GridHead
               columns={activeColumns}

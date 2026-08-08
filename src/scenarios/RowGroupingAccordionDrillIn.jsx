@@ -2,10 +2,10 @@ import { Fragment, useState } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast, CloseIcon,
-  TruncatingCell, useColumnResize, ColGroup, GridHead,
+  TruncatingCell, useColumnResize, useColumnVisibility, ColGroup, GridHead,
 } from '../components/tableKit.jsx'
 import {
-  columns, dataColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
+  columns as allColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
   GROUP_LEVEL_COUNT, levelLabel, levelName, levelTotal, childCountAt,
   leafItem, groupByDims,
 } from '../components/groupingModel.js'
@@ -39,7 +39,9 @@ export default function RowGroupingAccordionDrillIn() {
   const [filters, setFilters] = useState({})
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
-  const { widths, startResize, totalWidth } = useColumnResize(defaultWidths)
+  const { widths, startResize } = useColumnResize(defaultWidths)
+  const { columns, dataColumns } = useColumnVisibility('row-grouping-accordion-drill-in', allColumns)
+  const minWidth = columns.reduce((sum, col) => sum + widths[col.key], 0)
 
   // Single-open top group + drill state scoped to that group.
   //   subPath = []      -> showing the group's level-1 children
@@ -80,10 +82,12 @@ export default function RowGroupingAccordionDrillIn() {
       title="Row Grouping — Accordion Drill In"
       description="Primary groups keep the standard footer pager. Each group's accordion header becomes a split-button breadcrumb, and the current level's pager is anchored to that same header row as you drill down the hierarchy."
       groupBy={groupByDims}
+      columns={allColumns}
+      tableId="row-grouping-accordion-drill-in"
     >
       <div className="dt-table dt-table--fill">
         <div className="dt-columns">
-          <table className="dt-grid" style={{ width: '100%', minWidth: `${totalWidth}px` }}>
+          <table className="dt-grid dt-grid--pin" style={{ width: '100%', minWidth: `${minWidth}px` }}>
             <ColGroup columns={columns} widths={widths} />
             <GridHead
               columns={columns}

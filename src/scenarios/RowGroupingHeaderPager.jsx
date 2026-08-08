@@ -2,10 +2,10 @@ import { Fragment, useState } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast,
-  TruncatingCell, useColumnResize, ColGroup, GridHead,
+  TruncatingCell, useColumnResize, useColumnVisibility, ColGroup, GridHead,
 } from '../components/tableKit.jsx'
 import {
-  columns, dataColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
+  columns as allColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
   GROUP_LEVEL_COUNT, levelLabel, levelName, levelTotal, leafItem, groupByDims,
 } from '../components/groupingModel.js'
 
@@ -36,7 +36,9 @@ export default function RowGroupingHeaderPager() {
   const [filters, setFilters] = useState({})
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
-  const { widths, startResize, totalWidth } = useColumnResize(defaultWidths)
+  const { widths, startResize } = useColumnResize(defaultWidths)
+  const { columns, dataColumns } = useColumnVisibility('row-grouping-header-pager', allColumns)
+  const minWidth = columns.reduce((sum, col) => sum + widths[col.key], 0)
 
   // Single-open chain: openPath[L] = the index expanded at level L.
   const [openPath, setOpenPath] = useState([])
@@ -136,10 +138,12 @@ export default function RowGroupingHeaderPager() {
       title="Row Grouping — Header Pager"
       description="Each group's pagination is anchored to its header row (revealed on expand), so pagers never stack — across the full 5-level hierarchy."
       groupBy={groupByDims}
+      columns={allColumns}
+      tableId="row-grouping-header-pager"
     >
       <div className="dt-table dt-table--fill">
         <div className="dt-columns">
-          <table className="dt-grid" style={{ width: '100%', minWidth: `${totalWidth}px` }}>
+          <table className="dt-grid dt-grid--pin" style={{ width: '100%', minWidth: `${minWidth}px` }}>
             <ColGroup columns={columns} widths={widths} />
             <GridHead
               columns={columns}

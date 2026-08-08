@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
+import { useColumnVisibility } from '../components/tableKit.jsx'
 
 // ---------------------------------------------------------------------------
 // Column definitions
 // ---------------------------------------------------------------------------
-const columns = [
+const allColumns = [
   { key: 'name', label: 'Name' },
   { key: 'email', label: 'Email' },
   { key: 'role', label: 'Role' },
@@ -159,6 +160,7 @@ export default function BasicTable() {
   const [filters, setFilters] = useState({})
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
+  const { columns } = useColumnVisibility('basic-table', allColumns)
 
   const toggleSort = (key) => {
     setSort((prev) => {
@@ -185,7 +187,7 @@ export default function BasicTable() {
         return String(row[col.key]).toLowerCase().includes(term)
       }),
     )
-  }, [filters])
+  }, [filters, columns])
 
   const sorted = useMemo(() => {
     if (!sort.key) return filtered
@@ -215,6 +217,8 @@ export default function BasicTable() {
     <ScenarioShell
       title="Basic Table"
       description="Polar UI data table with sorting, per-column filtering, page size selection, and pagination."
+      columns={allColumns}
+      tableId="basic-table"
     >
       <div className="dt-table">
         <div className="dt-columns">

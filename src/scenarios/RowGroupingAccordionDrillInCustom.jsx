@@ -2,10 +2,10 @@ import { Fragment, useMemo, useState } from 'react'
 import ScenarioShell, { ToggleSwitch } from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast, CloseIcon,
-  TruncatingCell, useColumnResize, ColGroup, GridHead,
+  TruncatingCell, useColumnResize, useColumnVisibility, ColGroup, GridHead,
 } from '../components/tableKit.jsx'
 import {
-  columns, dataColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
+  columns as allColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
   LEVELS, LEVEL_BY_KEY, flatMembers, buildGroupTree, orderedLevelName,
 } from '../components/groupingModel.js'
 
@@ -155,6 +155,10 @@ export default function RowGroupingAccordionDrillInCustom() {
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
   const { widths, startResize } = useColumnResize(defaultWidths)
+  const { columns, dataColumns } = useColumnVisibility(
+    'row-grouping-accordion-drill-in-custom',
+    allColumns,
+  )
 
   // Committed grouping order (what the table renders) vs. the draft the user is
   // assembling in the builder. Empty order = flat default state.
@@ -214,7 +218,7 @@ export default function RowGroupingAccordionDrillInCustom() {
       return 0
     })
     return rows
-  }, [filters, sort])
+  }, [filters, sort, dataColumns])
 
   const toggleSort = (key) =>
     setSort((prev) => {
@@ -281,6 +285,8 @@ export default function RowGroupingAccordionDrillInCustom() {
       title="Row Grouping — Accordion Drill In (Custom)"
       description="Starts as a plain ungrouped table. Pick dimensions in the left panel and click Create groups to derive the hierarchy from the same rows; Reset returns to the flat default."
       groupBy={grouped ? activeOrder.map((k) => LEVEL_BY_KEY[k].name) : undefined}
+      columns={allColumns}
+      tableId="row-grouping-accordion-drill-in-custom"
       controlsDefaultOpen={false}
       panelExtras={
         <GroupByBuilder
@@ -311,7 +317,7 @@ export default function RowGroupingAccordionDrillInCustom() {
     >
       <div className="dt-table dt-table--fill">
         <div className="dt-columns">
-          <table className="dt-grid" style={{ width: '100%', minWidth: `${minWidth}px` }}>
+          <table className={`dt-grid ${grouped ? 'dt-grid--pin' : ''}`} style={{ width: '100%', minWidth: `${minWidth}px` }}>
             <ColGroup columns={activeColumns} widths={widths} />
             <GridHead
               columns={activeColumns}

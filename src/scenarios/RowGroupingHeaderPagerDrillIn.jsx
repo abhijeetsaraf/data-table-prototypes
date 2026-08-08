@@ -2,10 +2,10 @@ import { Fragment, useState } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast, CloseIcon,
-  TruncatingCell, useColumnResize, ColGroup, GridHead,
+  TruncatingCell, useColumnResize, useColumnVisibility, ColGroup, GridHead,
 } from '../components/tableKit.jsx'
 import {
-  columns, dataColumns, defaultWidths, PAGE_SIZES,
+  columns as allColumns, defaultWidths, PAGE_SIZES,
   GROUP_LEVEL_COUNT, levelLabel, levelName, levelTotal, childCountAt,
   leafItem, groupByDims,
 } from '../components/groupingModel.js'
@@ -38,7 +38,9 @@ export default function RowGroupingHeaderPagerDrillIn() {
   const [filters, setFilters] = useState({})
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
-  const { widths, startResize, totalWidth } = useColumnResize(defaultWidths)
+  const { widths, startResize } = useColumnResize(defaultWidths)
+  const { columns, dataColumns } = useColumnVisibility('row-grouping-header-pager-drill-in', allColumns)
+  const minWidth = columns.reduce((sum, col) => sum + widths[col.key], 0)
 
   // Navigation path: [] = top groups, [i0, i1, …] = nested groups / leaf.
   const [path, setPath] = useState([])
@@ -77,6 +79,8 @@ export default function RowGroupingHeaderPagerDrillIn() {
       title="Row Grouping — Header Pager + Drill In"
       description="Drill into a group; the path lives in a split-button row header with the level's pager appended, so only one pager is ever shown."
       groupBy={groupByDims}
+      columns={allColumns}
+      tableId="row-grouping-header-pager-drill-in"
     >
       <div className="dt-table dt-table--fill">
         {/* Row header: split-button breadcrumb (left) + appended header pager (right) */}
@@ -136,7 +140,7 @@ export default function RowGroupingHeaderPagerDrillIn() {
         </div>
 
         <div className="dt-columns">
-          <table className="dt-grid" style={{ width: '100%', minWidth: `${totalWidth}px` }}>
+          <table className="dt-grid dt-grid--pin" style={{ width: '100%', minWidth: `${minWidth}px` }}>
             <ColGroup columns={columnsForLevel} widths={widths} />
             <GridHead
               columns={columnsForLevel}

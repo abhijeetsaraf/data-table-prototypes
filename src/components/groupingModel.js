@@ -84,9 +84,12 @@ export const orderedChildCountAt = (order, depth) =>
 
 // --- Columns -----------------------------------------------------------------
 // Each data column carries a default pixel width used to seed the resizable
-// col widths. The "group" column holds the hierarchical group names.
+// col widths. The "group" column holds the hierarchical group names and is
+// `fixed` (always shown, never offered in the column-visibility control).
+// Data columns default to visible; set `defaultVisible: false` on any of them
+// to make it opt-in.
 export const columns = [
-  { key: 'group', label: 'Group', width: GROUP_COL_WIDTH },
+  { key: 'group', label: 'Group', width: GROUP_COL_WIDTH, fixed: true },
   { key: 'name', label: 'Name', width: 150 },
   { key: 'title', label: 'Title', width: 190 },
   { key: 'email', label: 'Email', width: 230 },

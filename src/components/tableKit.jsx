@@ -1,4 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
+  useSyncExternalStore,
+} from 'react'
 
 // ---------------------------------------------------------------------------
 // Shared icons (Polar UI style, 16px) used across every grouping scenario.
@@ -152,6 +155,125 @@ export function useColumnResize(initialWidths) {
 
   const totalWidth = Object.values(widths).reduce((a, b) => a + b, 0)
   return { widths, startResize, totalWidth }
+}
+
+// ---------------------------------------------------------------------------
+// Column visibility
+// A tiny per-table store (keyed by `tableId`, persisted to localStorage) that
+// tracks which columns are hidden. Both the table and the control panel read
+// the same store via `useColumnVisibility`, so toggling in the panel updates
+// the table and vice versa regardless of where each lives in the tree.
+//
+// The "group" column and any column flagged `fixed` are always shown and are
+// never offered as a toggle. Hiding is also prevented when it would leave no
+// toggleable column visible.
+// ---------------------------------------------------------------------------
+const COLS_STORAGE_PREFIX = 'dt:cols:'
+const columnStores = new Map()
+
+function readHiddenKeys(tableId) {
+  try {
+    const raw = window.localStorage.getItem(COLS_STORAGE_PREFIX + tableId)
+    const parsed = raw ? JSON.parse(raw) : null
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeHiddenKeys(tableId, keys) {
+  try {
+    if (keys.length === 0) {
+      window.localStorage.removeItem(COLS_STORAGE_PREFIX + tableId)
+    } else {
+      window.localStorage.setItem(COLS_STORAGE_PREFIX + tableId, JSON.stringify(keys))
+    }
+  } catch {
+    // Persistence is best-effort; if storage is unavailable state stays in memory.
+  }
+}
+
+// One store per tableId, created lazily. `defaultHidden` seeds the initial set
+// only when there is nothing persisted yet.
+function getColumnStore(tableId, defaultHidden) {
+  const existing = columnStores.get(tableId)
+  if (existing) return existing
+  const stored = readHiddenKeys(tableId)
+  let snapshot = new Set(stored || defaultHidden)
+  const listeners = new Set()
+  const store = {
+    subscribe(listener) {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    getSnapshot() {
+      return snapshot
+    },
+    setHidden(nextSet) {
+      snapshot = nextSet
+      writeHiddenKeys(tableId, [...nextSet])
+      listeners.forEach((l) => l())
+    },
+  }
+  columnStores.set(tableId, store)
+  return store
+}
+
+const sameKeys = (set, keys) =>
+  set.size === keys.length && keys.every((k) => set.has(k))
+
+// `allColumns` is the full column definition list (each `{ key, label, … }`,
+// optionally `fixed` / `defaultVisible`). Returns the visibility-filtered
+// `columns` (group column always kept) and `dataColumns`, plus the toggleable
+// list and controls for the panel.
+export function useColumnVisibility(tableId, allColumns) {
+  const toggleable = useMemo(
+    () => allColumns.filter((c) => c.key !== 'group' && !c.fixed),
+    [allColumns],
+  )
+  const defaultHidden = useMemo(
+    () => toggleable.filter((c) => c.defaultVisible === false).map((c) => c.key),
+    [toggleable],
+  )
+  const store = getColumnStore(tableId, defaultHidden)
+  const hidden = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getSnapshot,
+  )
+
+  const columns = useMemo(
+    () => allColumns.filter((c) => c.key === 'group' || c.fixed || !hidden.has(c.key)),
+    [allColumns, hidden],
+  )
+  const dataColumns = useMemo(
+    () => columns.filter((c) => c.key !== 'group'),
+    [columns],
+  )
+
+  const toggle = useCallback(
+    (key) => {
+      const next = new Set(hidden)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        // Never let the user hide the last remaining toggleable column.
+        const stillVisible = toggleable.some((c) => c.key !== key && !next.has(c.key))
+        if (!stillVisible) return
+        next.add(key)
+      }
+      store.setHidden(next)
+    },
+    [hidden, store, toggleable],
+  )
+
+  const reset = useCallback(() => {
+    store.setHidden(new Set(defaultHidden))
+  }, [store, defaultHidden])
+
+  const canReset = !sameKeys(hidden, defaultHidden)
+
+  return { columns, dataColumns, toggleable, hidden, toggle, reset, canReset }
 }
 
 // The visible column-header divider doubles as the resize handle: dragging it

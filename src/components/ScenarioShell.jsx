@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useColumnVisibility } from './tableKit.jsx'
 
 // ---------------------------------------------------------------------------
 // Density
@@ -220,6 +221,8 @@ export default function ScenarioShell({
   controlsDefaultOpen = true,
   loadedCount = 50,
   totalCount = 1234,
+  columns = [],
+  tableId = null,
   children,
 }) {
   const [dense, setDense] = useState(false)
@@ -229,6 +232,10 @@ export default function ScenarioShell({
   const [showDescription, setShowDescription] = useState(false)
   const [controlsOpen, setControlsOpen] = useState(controlsDefaultOpen)
   const ctx = useMemo(() => ({ dense, setDense }), [dense])
+
+  // Column visibility shares a per-table store with the table itself, so these
+  // panel toggles and the rendered columns stay in sync.
+  const colVis = useColumnVisibility(tableId, columns)
 
   return (
     <DensityContext.Provider value={ctx}>
@@ -319,6 +326,32 @@ export default function ScenarioShell({
                 label="Table description"
               />
             </div>
+
+            {colVis.toggleable.length > 0 && (
+              <>
+                <div className="dt-controls-heading dt-controls-heading--sub dt-cols-heading">
+                  <span>Columns</span>
+                  <button
+                    type="button"
+                    className="dt-cols-reset"
+                    disabled={!colVis.canReset}
+                    onClick={colVis.reset}
+                  >
+                    Reset
+                  </button>
+                </div>
+                {colVis.toggleable.map((col) => (
+                  <div className="dt-control dt-control--simple" key={col.key}>
+                    <span className="dt-control-label">{col.label}</span>
+                    <ToggleSwitch
+                      on={!colVis.hidden.has(col.key)}
+                      onChange={() => colVis.toggle(col.key)}
+                      label={`Show ${col.label} column`}
+                    />
+                  </div>
+                ))}
+              </>
+            )}
 
                 {controls}
               </div>
