@@ -308,6 +308,7 @@ export default function BasicTable() {
           </table>
         </div>
 
+        {pageCount > 1 && (
         <div className="dt-footer">
           <div className="dt-page-size">
             <span className="dt-page-size-label">Items per page</span>
@@ -383,6 +384,7 @@ export default function BasicTable() {
             </button>
           </div>
         </div>
+        )}
       </div>
     </ScenarioShell>
   )

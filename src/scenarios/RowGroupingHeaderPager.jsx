@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useMemo } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast,
@@ -6,7 +6,8 @@ import {
 } from '../components/tableKit.jsx'
 import {
   columns as allColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
-  GROUP_LEVEL_COUNT, levelLabel, levelName, levelTotal, leafItem, groupByDims,
+  levelName, groupByDims,
+  flatMembers, buildGroupTree, DEFAULT_ORDER, treeNodeAt,
 } from '../components/groupingModel.js'
 
 // ---------------------------------------------------------------------------
@@ -64,7 +65,9 @@ export default function RowGroupingHeaderPager() {
   const setMicro = (key, value, count) =>
     setMicroPage((p) => ({ ...p, [key]: Math.min(Math.max(1, value), count) }))
 
-  const topTotal = levelTotal(0)
+  const tree = useMemo(() => buildGroupTree(flatMembers, DEFAULT_ORDER), [])
+
+  const topTotal = tree.children.length
   const topPageCount = Math.max(1, Math.ceil(topTotal / pageSize))
   const currentPage = Math.min(page, topPageCount)
   const startG = (currentPage - 1) * pageSize
@@ -76,9 +79,13 @@ export default function RowGroupingHeaderPager() {
     const gi = path[level]
     const key = path.join('-')
     const open = openPath[level] === gi
+    const parentNode = level === 0 ? tree : treeNodeAt(tree, path.slice(0, level))
+    const entry = parentNode.children[gi]
+    const node = treeNodeAt(tree, path)
     const childLevel = level + 1
-    const childIsLeaf = childLevel === GROUP_LEVEL_COUNT
-    const childTotal = levelTotal(childLevel)
+    const childIsLeaf = node.isLeaf
+    const childItems = childIsLeaf ? node.members : node.children
+    const childTotal = childItems.length
     const micro = getMicro(key)
     const pageCount = Math.max(1, Math.ceil(childTotal / MICRO_PAGE_SIZE))
     const s = (micro - 1) * MICRO_PAGE_SIZE
@@ -92,10 +99,10 @@ export default function RowGroupingHeaderPager() {
             <button type="button" className="dt-group-toggle-row"
               aria-expanded={open} onClick={() => toggleAt(level, gi)}>
               <span className={`dt-group-chevron ${open ? 'is-open' : ''}`}><ChevronRight /></span>
-              <TruncatingCell text={levelLabel(level, gi)} className="dt-strong" />
-              <span className="dt-group-count">{childTotal}</span>
+              <TruncatingCell text={entry.label} className="dt-strong" />
+              <span className="dt-group-count">{entry.count}</span>
             </button>
-            {open && (
+            {open && pageCount > 1 && (
               <HeaderPager density={density} label={`${levelName(childLevel)}s`} page={micro}
                 pageCount={pageCount} total={childTotal}
                 onGoTo={(p) => setMicro(key, p, pageCount)} />
@@ -109,7 +116,7 @@ export default function RowGroupingHeaderPager() {
       for (let i = s; i < e; i += 1) {
         const childPath = [...path, i]
         if (childIsLeaf) {
-          const item = leafItem(path, i)
+          const item = childItems[i]
           rows.push(
             <tr
               className={`dt-row ${i % 2 === 1 ? 'dt-row--alt' : ''}`}
@@ -167,6 +174,7 @@ export default function RowGroupingHeaderPager() {
           </table>
         </div>
 
+        {topPageCount > 1 && (
         <div className="dt-footer">
           <div className="dt-page-size">
             <span className="dt-page-size-label">Groups per page</span>
@@ -189,6 +197,7 @@ export default function RowGroupingHeaderPager() {
             <button type="button" className="dt-page-btn" aria-label="Last page" disabled={currentPage === topPageCount} onClick={() => goToMain(topPageCount)}><PageLast /></button>
           </div>
         </div>
+        )}
       </div>
     </ScenarioShell>
   )

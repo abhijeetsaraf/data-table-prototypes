@@ -8,6 +8,7 @@ import RowGroupingHeaderPagerDrillIn from './scenarios/RowGroupingHeaderPagerDri
 import RowGroupingAccordionDrillIn from './scenarios/RowGroupingAccordionDrillIn.jsx'
 import RowGroupingAccordionDrillInCustom from './scenarios/RowGroupingAccordionDrillInCustom.jsx'
 import RowGroupingCommandNested from './scenarios/RowGroupingCommandNested.jsx'
+import RowGroupingCommandNestedStacked from './scenarios/RowGroupingCommandNestedStacked.jsx'
 
 export const scenarios = [
   {
@@ -65,5 +66,12 @@ export const scenarios = [
     description:
       'Recommended combo: a searchable, hundreds-deep group-by menu (A3) that resolves into a nested multi-level accordion where every level stays visible with per-level pagers (B4).',
     component: RowGroupingCommandNested,
+  },
+  {
+    path: 'row-grouping-command-nested-stacked',
+    title: 'Row Grouping \u2014 Command Palette + Nested Accordion (Sticky Pills)',
+    description:
+      'Extended variant over the real ~5000-row dataset: as you scroll the nested accordion, a sticky breadcrumb stacks a pill per ancestor (styled like the group-by split, minus the \u2715) and pops them off as each branch is exhausted.',
+    component: RowGroupingCommandNestedStacked,
   },
 ]

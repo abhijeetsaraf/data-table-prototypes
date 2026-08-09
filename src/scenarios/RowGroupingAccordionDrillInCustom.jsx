@@ -418,7 +418,7 @@ export default function RowGroupingAccordionDrillInCustom() {
                                 )}
                               </div>
                             </div>
-                            {gOpen && (
+                            {gOpen && microPageCount > 1 && (
                               <HeaderPager label={`${orderedLevelName(activeOrder, shownLevel)}s`} page={micro} pageCount={microPageCount}
                                 total={nodeTotal} pageSize={MICRO_PAGE_SIZE}
                                 onGoTo={(p) => setMicro(microKey, p, microPageCount)} />
@@ -487,6 +487,7 @@ export default function RowGroupingAccordionDrillInCustom() {
           </table>
         </div>
 
+        {pageCount > 1 && (
         <div className="dt-footer">
           <div className="dt-page-size">
             <span className="dt-page-size-label">{grouped ? 'Groups per page' : 'Items per page'}</span>
@@ -509,6 +510,7 @@ export default function RowGroupingAccordionDrillInCustom() {
             <button type="button" className="dt-page-btn" aria-label="Last page" disabled={currentPage === pageCount} onClick={() => goToMain(pageCount)}><PageLast /></button>
           </div>
         </div>
+        )}
       </div>
     </ScenarioShell>
   )

@@ -1,4 +1,6 @@
-import { Fragment, useMemo, useState } from 'react'
+import {
+  Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState,
+} from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast, CloseIcon,
@@ -6,30 +8,31 @@ import {
 } from '../components/tableKit.jsx'
 import {
   columns as allColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
-  FLAT_COUNT, LEVEL_BY_KEY, flatMembers, leafItem,
+  flatMembers,
 } from '../components/groupingModel.js'
 
 // ---------------------------------------------------------------------------
-// Variant: Command Palette (A3) + Nested Accordion (B4)
+// Variant: Command Palette (A3) + Nested Accordion (B4) — Sticky Stacking Pills
 //
-// Two recommended ideas combined into a single experience:
+// An extended version of the Command Palette + Nested Accordion experience:
 //
-//   A3 — the group-by picker is a SEARCHABLE hierarchical menu. Hundreds of
-//   dimensions live in a 3-deep taxonomy (Bookmark ▸ List/Spots ▸ List n …).
-//   A search box collapses "drill three flyouts" into "type a few letters +
-//   click", and a browsable tree is there for discovery. Picks assemble into
-//   an ordered sequence, committed with "Create groups".
+//   • Data is the real ~5000-member dataset — grouping derives a real tree from
+//     the same rows, so counts reconcile and pagination is genuinely exercised.
 //
-//   B4 — the result is a NESTED multi-level accordion. Every level is visible
-//   at once (all business units under APAC, not just the first leaf), each with
-//   its own micro-pager. A hybrid "auto-expand depth" caps how many levels open
-//   by default so height stays bounded; deeper levels expand on click.
+//   • Sticky stacking breadcrumb: as you scroll the accordion, a single sticky
+//     bar (styled exactly like the group-by split breadcrumb, minus the ✕)
+//     pins to the top of the scroll area and accumulates ONE PILL PER ANCESTOR
+//     of whatever section currently sits under the header. Scroll a child's
+//     header up under the bar and its pill is appended to its parent's; scroll
+//     past a whole branch and the deeper pills pop off. This is the classic
+//     "stacked sticky group headers" collapsed into one compact pill trail.
+//
+//   • Micro-pagers only appear where a node actually spans more than one page.
 // ---------------------------------------------------------------------------
 
-const STATUS_VALUES = ['Active', 'Invited', 'Suspended', 'Pending']
-
-// Generate a run of concrete leaf options ("List 1", "List 2", …). These are
-// selectable as a single group per the chosen parent semantics.
+// Generate a run of concrete leaf options ("List 1", "List 2", …) for the
+// searchable catalog (discovery flavor); these collapse to a single bucket when
+// grouped by, per the parent's "treat the whole thing as one group" semantics.
 const genLeaves = (prefix, idPrefix, n) =>
   Array.from({ length: n }, (_, i) => ({
     id: `${idPrefix}-${i + 1}`,
@@ -38,8 +41,8 @@ const genLeaves = (prefix, idPrefix, n) =>
   }))
 
 // Hierarchical group-by catalog. `dimension` nodes fan out into their real
-// value buckets; `single` nodes (parents and concrete leaves) collapse to one
-// bucket when grouped by — matching "treat the whole parent as a single group".
+// value buckets (grouped over the real rows); `single` nodes collapse to one
+// bucket when grouped by.
 const CATALOG = [
   { id: 'region', name: 'Region', kind: 'dimension', dim: 'region' },
   { id: 'unit', name: 'Business unit', kind: 'dimension', dim: 'unit' },
@@ -65,33 +68,35 @@ const SEARCH_INDEX = []
   }
 })(CATALOG, [])
 
-const dimValues = (dim) => {
-  if (dim === 'status') return STATUS_VALUES
-  const L = LEVEL_BY_KEY[dim]
-  return Array.from({ length: L.count }, (_, i) => L.label(i))
-}
-
-// The value buckets a token contributes at its level.
-const bucketLabels = (token) =>
-  token.kind === 'dimension' ? dimValues(token.dim) : [token.name]
-
-// Build a nested tree from an ordered token list, distributing a member count
-// down each level so counts reconcile exactly (parent = sum of children).
-function buildSyntheticTree(tokens, rootCount) {
-  const build = (count, depth) => {
-    if (depth === tokens.length) return { isLeaf: true, count }
-    const labels = bucketLabels(tokens[depth])
-    const b = Math.min(labels.length, Math.max(1, count))
-    const base = Math.floor(count / b)
-    const rem = count % b
-    const children = []
-    for (let i = 0; i < b; i++) {
-      const c = base + (i < rem ? 1 : 0)
-      children.push({ label: labels[i], count: c, child: build(c, depth + 1) })
+// Build a nested tree from an ordered token list over the REAL rows. Dimension
+// tokens split rows by their field value; single tokens wrap all rows in one
+// labelled bucket. Leaf nodes carry the real member rows so counts reconcile.
+function buildRealTokenTree(rows, tokens) {
+  const build = (subset, depth) => {
+    if (depth === tokens.length) return { isLeaf: true, members: subset }
+    const token = tokens[depth]
+    if (token.kind === 'dimension') {
+      const buckets = new Map()
+      for (const row of subset) {
+        const value = row[token.dim]
+        if (!buckets.has(value)) buckets.set(value, [])
+        buckets.get(value).push(row)
+      }
+      const children = [...buckets.keys()]
+        .sort((a, b) => String(a).localeCompare(String(b)))
+        .map((label) => {
+          const members = buckets.get(label)
+          return { label, count: members.length, child: build(members, depth + 1) }
+        })
+      return { isLeaf: false, children }
     }
-    return { isLeaf: false, children }
+    // Single token → one bucket containing all rows at this level.
+    return {
+      isLeaf: false,
+      children: [{ label: token.name, count: subset.length, child: build(subset, depth + 1) }],
+    }
   }
-  return build(rootCount, 0)
+  return build(rows, 0)
 }
 
 const sameTokens = (a, b) =>
@@ -265,27 +270,29 @@ function HeaderPager({ label, page, pageCount, total, pageSize, onGoTo }) {
   )
 }
 
-export default function RowGroupingCommandNested() {
+export default function RowGroupingCommandNestedStacked() {
   const [sort, setSort] = useState({ key: null, dir: 'asc' })
   const [openFilters, setOpenFilters] = useState({})
   const [filters, setFilters] = useState({})
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
   const { widths, startResize } = useColumnResize(defaultWidths)
-  const { columns, dataColumns } = useColumnVisibility('row-grouping-command-nested', allColumns)
+  const { columns, dataColumns } = useColumnVisibility('row-grouping-command-nested-stacked', allColumns)
 
   // Committed group-by sequence (tokens) vs. the draft being assembled.
   const [tokens, setTokens] = useState([])
   const [draft, setDraft] = useState([])
 
   // Nested-accordion state: per-node open overrides + per-node micro pages.
-  // `expandDepth` is the hybrid cap — how many levels auto-open by default.
   const [expandDepth, setExpandDepth] = useState(2)
   const [openMap, setOpenMap] = useState({})
   const [microMap, setMicroMap] = useState({})
 
   const grouped = tokens.length > 0
-  const tree = useMemo(() => buildSyntheticTree(tokens, FLAT_COUNT), [tokens])
+  const tree = useMemo(
+    () => (grouped ? buildRealTokenTree(flatMembers, tokens) : null),
+    [tokens, grouped],
+  )
 
   const toggleSort = (key) =>
     setSort((prev) => {
@@ -305,7 +312,7 @@ export default function RowGroupingCommandNested() {
 
   const changeExpandDepth = (next) => {
     setExpandDepth(next)
-    setOpenMap({}) // let the new default take over cleanly
+    setOpenMap({})
   }
 
   const resetGroupState = () => {
@@ -315,7 +322,7 @@ export default function RowGroupingCommandNested() {
   }
   const createGroups = (order) => {
     setTokens(order)
-    setExpandDepth(order.length) // always auto-expand every level down to the leaf
+    setExpandDepth(order.length) // auto-expand every level so the stack is deep
     resetGroupState()
   }
   const resetAll = () => {
@@ -356,14 +363,121 @@ export default function RowGroupingCommandNested() {
   const endG = Math.min(startG + pageSize, total)
   const goToMain = (p) => setPage(Math.min(Math.max(1, p), pageCount))
 
+  // -------------------------------------------------------------------------
+  // Sticky stacking pill bar
+  // A scroll-driven breadcrumb: measure every group-header row's Y within the
+  // scroll content, then on scroll find the deepest header pinned under the
+  // sticky column header and reconstruct its ancestor chain into pills.
+  // -------------------------------------------------------------------------
+  const scrollRef = useRef(null)
+  const headersRef = useRef([])
+  const headHRef = useRef(47)
+  const rafRef = useRef(0)
+  const [pills, setPills] = useState([])
+
+  const computePills = useCallback(() => {
+    const c = scrollRef.current
+    const list = headersRef.current
+    if (!c || list.length === 0) {
+      setPills((prev) => (prev.length ? [] : prev))
+      return
+    }
+    // A header has "scrolled past" (behind the sticky column header) once its
+    // content-Y sits above the header's bottom edge — that's when it collapses
+    // into a pill. Using a strict compare keeps a group out of the bar while
+    // its own header is still showing in its natural row position.
+    const line = c.scrollTop + headHRef.current
+    // Binary search: last header that has scrolled past the bar line.
+    let lo = 0
+    let hi = list.length - 1
+    let k = -1
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      if (list[mid].y < line) {
+        k = mid
+        lo = mid + 1
+      } else {
+        hi = mid - 1
+      }
+    }
+    if (k < 0) {
+      setPills((prev) => (prev.length ? [] : prev))
+      return
+    }
+    // Walk back from the pinned header collecting one entry per ancestor depth.
+    const stack = []
+    let need = list[k].depth
+    for (let j = k; j >= 0 && need >= 0; j--) {
+      if (list[j].depth === need) {
+        stack[need] = list[j]
+        need -= 1
+      }
+    }
+    const next = stack.filter(Boolean)
+    setPills((prev) => {
+      if (
+        prev.length === next.length &&
+        prev.every((p, i) => p.label === next[i].label && p.y === next[i].y)
+      ) {
+        return prev
+      }
+      return next
+    })
+  }, [])
+
+  const measure = useCallback(() => {
+    const c = scrollRef.current
+    if (!c) return
+    const cRect = c.getBoundingClientRect()
+    const thead = c.querySelector('thead')
+    if (thead) headHRef.current = thead.getBoundingClientRect().height || 47
+    const list = []
+    c.querySelectorAll('tr[data-stack-depth]').forEach((el) => {
+      const r = el.getBoundingClientRect()
+      list.push({
+        depth: Number(el.dataset.stackDepth),
+        label: el.dataset.stackLabel,
+        count: Number(el.dataset.stackCount),
+        y: r.top - cRect.top + c.scrollTop,
+      })
+    })
+    headersRef.current = list
+    computePills()
+  }, [computePills])
+
+  const onScroll = useCallback(() => {
+    if (rafRef.current) return
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = 0
+      computePills()
+    })
+  }, [computePills])
+
+  // Re-measure whenever the rendered rows could have changed.
+  useLayoutEffect(() => {
+    measure()
+  }, [measure, grouped, tokens, openMap, microMap, currentPage, pageSize, expandDepth, widths, activeColumns.length, openFilters])
+
+  useLayoutEffect(() => {
+    const onResize = () => measure()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [measure])
+
+  const scrollToPill = (pill) => {
+    const c = scrollRef.current
+    if (!c) return
+    c.scrollTo({ top: Math.max(0, pill.y - headHRef.current + 1), behavior: 'smooth' })
+  }
+
   // Recursively push accordion rows for one group entry and its open subtree.
   const renderEntry = (entry, path, depth, out) => {
     const pathKey = path.join('.')
     const open = isOpen(pathKey, depth)
     const indent = 12 + depth * INDENT_STEP
     const childIsLeaf = entry.child.isLeaf
-    const items = childIsLeaf ? null : entry.child.children
-    const itemTotal = childIsLeaf ? entry.count : items.length
+    const items = childIsLeaf ? entry.child.members : entry.child.children
+    const itemTotal = items.length
     const micro = getMicro(pathKey)
     const microPageCount = Math.max(1, Math.ceil(itemTotal / MICRO_PAGE_SIZE))
     const s = (micro - 1) * MICRO_PAGE_SIZE
@@ -371,7 +485,14 @@ export default function RowGroupingCommandNested() {
     const childName = depth + 1 < tokens.length ? tokens[depth + 1].name : 'Member'
 
     out.push(
-      <tr key={`h-${pathKey}`} className="dt-group-row dt-nest" data-level={Math.min(depth, 3)}>
+      <tr
+        key={`h-${pathKey}`}
+        className="dt-group-row dt-nest"
+        data-level={Math.min(depth, 3)}
+        data-stack-depth={depth}
+        data-stack-label={entry.label}
+        data-stack-count={entry.count}
+      >
         <td className="dt-group-cell" colSpan={activeColumns.length}>
           <div className="dt-group-header" style={{ paddingLeft: indent }}>
             <div className="dt-group-header-start">
@@ -398,10 +519,9 @@ export default function RowGroupingCommandNested() {
     if (childIsLeaf) {
       const leafIndent = 12 + (depth + 1) * INDENT_STEP
       for (let k = 0; k < e - s; k++) {
-        const ii = s + k
-        const item = leafItem(path, ii)
+        const item = entry.child.members[s + k]
         out.push(
-          <tr key={`m-${pathKey}-${ii}`} className={`dt-row ${ii % 2 === 1 ? 'dt-row--alt' : ''}`}>
+          <tr key={`m-${pathKey}-${s + k}`} className={`dt-row ${(s + k) % 2 === 1 ? 'dt-row--alt' : ''}`}>
             <td className="dt-cell dt-cell--group-spacer" style={{ paddingLeft: leafIndent }} />
             {dataColumns.map((col) => (
               <td key={col.key} className="dt-cell">
@@ -429,11 +549,11 @@ export default function RowGroupingCommandNested() {
   return (
     <ScenarioShell
       fill
-      title="Row Grouping — Command Palette + Nested Accordion"
-      description="Search a hundreds-deep group-by menu (A3), then read the result as a nested multi-level accordion where every level stays visible (B4)."
+      title="Row Grouping — Command Palette + Nested Accordion (Sticky Pills)"
+      description="The nested multi-level accordion over the real ~5000-row dataset, with a sticky breadcrumb that stacks a pill per ancestor as you scroll each branch."
       groupBy={grouped ? tokens.map((t) => t.name) : undefined}
       columns={allColumns}
-      tableId="row-grouping-command-nested"
+      tableId="row-grouping-command-nested-stacked"
       controlsDefaultOpen={false}
       panelExtras={
         <CommandPaletteBuilder
@@ -465,8 +585,34 @@ export default function RowGroupingCommandNested() {
         ) : undefined
       }
     >
-      <div className="dt-table dt-table--fill">
-        <div className="dt-columns">
+      <div className="dt-table dt-table--fill dt-table--stack">
+        {grouped && pills.length > 0 && (
+          <div className="dt-stack-bar" style={{ top: headHRef.current + 1 }}>
+            <div className="dt-stack-header" role="group" aria-label="Current group">
+              <div className="dt-split-main dt-stack-crumbs">
+                {pills.map((pill, j) => {
+                  const isCurrent = j === pills.length - 1
+                  return (
+                    <Fragment key={`${pill.depth}-${pill.label}`}>
+                      {j > 0 && <span className="dt-split-sep"><ChevronRight /></span>}
+                      <button
+                        type="button"
+                        className={`dt-split-crumb ${isCurrent ? 'is-current' : ''}`}
+                        onClick={() => scrollToPill(pill)}
+                        title={pill.label}
+                      >
+                        {pill.label}
+                      </button>
+                    </Fragment>
+                  )
+                })}
+              </div>
+              <span className="dt-group-count">{pills[pills.length - 1].count}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="dt-columns" ref={scrollRef} onScroll={onScroll}>
           <table className={`dt-grid ${grouped ? 'dt-grid--pin' : ''}`} style={{ width: '100%', minWidth: `${minWidth}px` }}>
             <ColGroup columns={activeColumns} widths={widths} />
             <GridHead
@@ -506,28 +652,28 @@ export default function RowGroupingCommandNested() {
         </div>
 
         {pageCount > 1 && (
-        <div className="dt-footer">
-          <div className="dt-page-size">
-            <span className="dt-page-size-label">{grouped ? 'Groups per page' : 'Items per page'}</span>
-            <div className="dt-select">
-              <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}>
-                {PAGE_SIZES.map((size) => (<option key={size} value={size}>{size}</option>))}
-              </select>
-              <span className="dt-select-chevron"><ChevronDown /></span>
+          <div className="dt-footer">
+            <div className="dt-page-size">
+              <span className="dt-page-size-label">{grouped ? 'Groups per page' : 'Items per page'}</span>
+              <div className="dt-select">
+                <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}>
+                  {PAGE_SIZES.map((size) => (<option key={size} value={size}>{size}</option>))}
+                </select>
+                <span className="dt-select-chevron"><ChevronDown /></span>
+              </div>
+            </div>
+            <div className="dt-pagination">
+              <button type="button" className="dt-page-btn" aria-label="First page" disabled={currentPage === 1} onClick={() => goToMain(1)}><PageFirst /></button>
+              <button type="button" className="dt-page-btn" aria-label="Previous page" disabled={currentPage === 1} onClick={() => goToMain(currentPage - 1)}><ChevronLeft /></button>
+              <span className="dt-page-label">Page</span>
+              <div className="dt-number-field">
+                <input type="number" min={1} max={pageCount} value={currentPage} onChange={(e) => goToMain(Number(e.target.value))} />
+              </div>
+              <span className="dt-page-count">of {pageCount}</span>
+              <button type="button" className="dt-page-btn" aria-label="Next page" disabled={currentPage === pageCount} onClick={() => goToMain(currentPage + 1)}><ChevronRight /></button>
+              <button type="button" className="dt-page-btn" aria-label="Last page" disabled={currentPage === pageCount} onClick={() => goToMain(pageCount)}><PageLast /></button>
             </div>
           </div>
-          <div className="dt-pagination">
-            <button type="button" className="dt-page-btn" aria-label="First page" disabled={currentPage === 1} onClick={() => goToMain(1)}><PageFirst /></button>
-            <button type="button" className="dt-page-btn" aria-label="Previous page" disabled={currentPage === 1} onClick={() => goToMain(currentPage - 1)}><ChevronLeft /></button>
-            <span className="dt-page-label">Page</span>
-            <div className="dt-number-field">
-              <input type="number" min={1} max={pageCount} value={currentPage} onChange={(e) => goToMain(Number(e.target.value))} />
-            </div>
-            <span className="dt-page-count">of {pageCount}</span>
-            <button type="button" className="dt-page-btn" aria-label="Next page" disabled={currentPage === pageCount} onClick={() => goToMain(currentPage + 1)}><ChevronRight /></button>
-            <button type="button" className="dt-page-btn" aria-label="Last page" disabled={currentPage === pageCount} onClick={() => goToMain(pageCount)}><PageLast /></button>
-          </div>
-        </div>
         )}
       </div>
     </ScenarioShell>

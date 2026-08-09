@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast, CloseIcon,
@@ -6,8 +6,8 @@ import {
 } from '../components/tableKit.jsx'
 import {
   columns as allColumns, defaultWidths, PAGE_SIZES,
-  GROUP_LEVEL_COUNT, levelLabel, levelName, levelTotal, childCountAt,
-  leafItem, groupByDims,
+  flatMembers, buildGroupTree, DEFAULT_ORDER, treeNodeAt, treeLabelsAt,
+  levelName, groupByDims,
 } from '../components/groupingModel.js'
 
 // ---------------------------------------------------------------------------
@@ -42,10 +42,15 @@ export default function RowGroupingHeaderPagerDrillIn() {
   const { columns, dataColumns } = useColumnVisibility('row-grouping-header-pager-drill-in', allColumns)
   const minWidth = columns.reduce((sum, col) => sum + widths[col.key], 0)
 
+  const tree = useMemo(() => buildGroupTree(flatMembers, DEFAULT_ORDER), [])
+
   // Navigation path: [] = top groups, [i0, i1, …] = nested groups / leaf.
   const [path, setPath] = useState([])
   const level = path.length
-  const isLeaf = level === GROUP_LEVEL_COUNT
+  const node = treeNodeAt(tree, path)
+  const labels = treeLabelsAt(tree, path)
+  const isLeaf = node.isLeaf
+  const items = isLeaf ? node.members : node.children
 
   const navigate = (nextPath) => {
     setPath(nextPath)
@@ -60,7 +65,7 @@ export default function RowGroupingHeaderPagerDrillIn() {
     })
   const toggleFilter = (key) => setOpenFilters((p) => ({ ...p, [key]: !p[key] }))
 
-  const total = levelTotal(level)
+  const total = items.length
   const groupColLabel = levelName(level)
   const levelLabelText = `${groupColLabel}s`
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
@@ -104,7 +109,7 @@ export default function RowGroupingHeaderPagerDrillIn() {
                           disabled={isLast}
                           onClick={() => navigate(path.slice(0, i + 1))}
                         >
-                          {levelLabel(i, idx)}
+                          {labels[i]}
                         </button>
                       </Fragment>
                     )
@@ -134,8 +139,10 @@ export default function RowGroupingHeaderPagerDrillIn() {
                 <span className="dt-select-chevron"><ChevronDown /></span>
               </div>
             </div>
+            {pageCount > 1 && (
             <HeaderPager label={levelLabelText} page={currentPage} pageCount={pageCount}
               total={total} pageSize={pageSize} onGoTo={goToLevel} />
+            )}
           </div>
         </div>
 
@@ -158,7 +165,7 @@ export default function RowGroupingHeaderPagerDrillIn() {
                 const i = start + idx
 
                 if (isLeaf) {
-                  const item = leafItem(path, i)
+                  const item = node.members[i]
                   return (
                     <tr
                       className={`dt-row ${i % 2 === 1 ? 'dt-row--alt' : ''}`}
@@ -174,8 +181,9 @@ export default function RowGroupingHeaderPagerDrillIn() {
                   )
                 }
 
-                const label = levelLabel(level, i)
-                const childCount = childCountAt(level)
+                const childNode = node.children[i]
+                const label = childNode.label
+                const childCount = childNode.count
                 const onOpen = () => navigate([...path, i])
 
                 return (

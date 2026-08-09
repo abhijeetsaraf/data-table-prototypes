@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useMemo } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast,
@@ -6,8 +6,8 @@ import {
 } from '../components/tableKit.jsx'
 import {
   columns as allColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
-  GROUP_LEVEL_COUNT, levelLabel, levelName, levelTotal, childCountAt,
-  leafItem, groupByDims,
+  GROUP_LEVEL_COUNT, levelName, groupByDims,
+  flatMembers, buildGroupTree, DEFAULT_ORDER, treeNodeAt,
 } from '../components/groupingModel.js'
 
 // Height of a single sticky micro-pagination row; deeper levels stack above
@@ -81,7 +81,9 @@ export default function RowGrouping() {
   const { columns, dataColumns } = useColumnVisibility('row-grouping', allColumns)
   const minWidth = columns.reduce((sum, col) => sum + widths[col.key], 0)
 
-  const topTotal = levelTotal(0)
+  const tree = useMemo(() => buildGroupTree(flatMembers, DEFAULT_ORDER), [])
+
+  const topTotal = tree.children.length
   const topPageCount = Math.max(1, Math.ceil(topTotal / pageSize))
   const currentPage = Math.min(page, topPageCount)
   const startG = (currentPage - 1) * pageSize
@@ -91,8 +93,10 @@ export default function RowGrouping() {
   // Render the children of an open node: nested group/leaf rows for
   // `childLevel`, followed by that level's sticky micro pager.
   const renderChildren = (childLevel, parentPath, parentKey) => {
-    const isLeaf = childLevel === GROUP_LEVEL_COUNT
-    const total = levelTotal(childLevel)
+    const parentNode = treeNodeAt(tree, parentPath)
+    const isLeaf = parentNode.isLeaf
+    const items = isLeaf ? parentNode.members : parentNode.children
+    const total = items.length
     const micro = getMicro(parentKey)
     const pageCount = Math.max(1, Math.ceil(total / MICRO_PAGE_SIZE))
     const s = (micro - 1) * MICRO_PAGE_SIZE
@@ -103,7 +107,7 @@ export default function RowGrouping() {
     for (let i = s; i < e; i += 1) {
       const path = [...parentPath, i]
       if (isLeaf) {
-        const item = leafItem(parentPath, i)
+        const item = items[i]
         rows.push(
           <tr
             className={`dt-row ${i % 2 === 1 ? 'dt-row--alt' : ''}`}
@@ -118,6 +122,7 @@ export default function RowGrouping() {
           </tr>,
         )
       } else {
+        const entry = items[i]
         const open = openPath[childLevel] === i
         rows.push(
           <tr className="dt-group-row" data-level={childLevel} key={`g-${path.join('-')}`}>
@@ -129,8 +134,8 @@ export default function RowGrouping() {
                   onClick={() => toggleAt(childLevel, i)}>
                   <span className={`dt-group-chevron ${open ? 'is-open' : ''}`}><ChevronRight /></span>
                 </button>
-                <TruncatingCell text={levelLabel(childLevel, i)} className="dt-strong" />
-                <span className="dt-group-count">{childCountAt(childLevel)}</span>
+                <TruncatingCell text={entry.label} className="dt-strong" />
+                <span className="dt-group-count">{entry.count}</span>
               </div>
             </td>
             {dataColumns.map((col) => (
@@ -150,26 +155,28 @@ export default function RowGrouping() {
 
     // Sticky micro pager for this level's children. Position is a multiple of
     // the row height so deeper pagers stack above shallower ones.
-    rows.push(
-      <tr className="dt-micro-row" key={`m-${parentKey}`}>
-        <td
-          className={`dt-micro-cell dt-micro-tone-${childLevel}`}
-          colSpan={columns.length}
-          style={{ bottom: (childLevel - 1) * MICRO_ROW_H, zIndex: GROUP_LEVEL_COUNT - childLevel + 2 }}
-        >
-          <div className="dt-micro-indent" style={{ paddingLeft: indent }}>
-            <MicroPagination
-              label={isLeaf ? 'Members' : `${levelName(childLevel)}s`}
-              page={micro}
-              pageCount={pageCount}
-              total={total}
-              summaryWidth={Math.max(80, widths.group - indent)}
-              onGoTo={(p) => setMicro(parentKey, p, pageCount)}
-            />
-          </div>
-        </td>
-      </tr>,
-    )
+    if (pageCount > 1) {
+      rows.push(
+        <tr className="dt-micro-row" key={`m-${parentKey}`}>
+          <td
+            className={`dt-micro-cell dt-micro-tone-${childLevel}`}
+            colSpan={columns.length}
+            style={{ bottom: (childLevel - 1) * MICRO_ROW_H, zIndex: GROUP_LEVEL_COUNT - childLevel + 2 }}
+          >
+            <div className="dt-micro-indent" style={{ paddingLeft: indent }}>
+              <MicroPagination
+                label={isLeaf ? 'Members' : `${levelName(childLevel)}s`}
+                page={micro}
+                pageCount={pageCount}
+                total={total}
+                summaryWidth={Math.max(80, widths.group - indent)}
+                onGoTo={(p) => setMicro(parentKey, p, pageCount)}
+              />
+            </div>
+          </td>
+        </tr>,
+      )
+    }
 
     return rows
   }
@@ -201,6 +208,7 @@ export default function RowGrouping() {
             <tbody>
               {Array.from({ length: endG - startG }, (_, idx) => {
                 const gi = startG + idx
+                const entry = tree.children[gi]
                 const gOpen = openPath[0] === gi
                 return (
                   <Fragment key={`g${gi}`}>
@@ -213,8 +221,8 @@ export default function RowGrouping() {
                             onClick={() => toggleAt(0, gi)}>
                             <span className={`dt-group-chevron ${gOpen ? 'is-open' : ''}`}><ChevronRight /></span>
                           </button>
-                          <TruncatingCell text={levelLabel(0, gi)} className="dt-strong" />
-                          <span className="dt-group-count">{childCountAt(0)}</span>
+                          <TruncatingCell text={entry.label} className="dt-strong" />
+                          <span className="dt-group-count">{entry.count}</span>
                         </div>
                       </td>
                       {dataColumns.map((col) => (
@@ -229,6 +237,7 @@ export default function RowGrouping() {
           </table>
         </div>
 
+        {topPageCount > 1 && (
         <div className="dt-footer">
           <div className="dt-page-size">
             <span className="dt-page-size-label">Groups per page</span>
@@ -255,6 +264,7 @@ export default function RowGrouping() {
             <button type="button" className="dt-page-btn" aria-label="Last page" disabled={currentPage === topPageCount} onClick={() => goToMain(topPageCount)}><PageLast /></button>
           </div>
         </div>
+        )}
       </div>
     </ScenarioShell>
   )

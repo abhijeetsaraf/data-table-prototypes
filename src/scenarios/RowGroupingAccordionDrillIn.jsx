@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
   ChevronDown, ChevronLeft, ChevronRight, PageFirst, PageLast, CloseIcon,
@@ -6,8 +6,8 @@ import {
 } from '../components/tableKit.jsx'
 import {
   columns as allColumns, defaultWidths, PAGE_SIZES, MICRO_PAGE_SIZE, INDENT_STEP,
-  GROUP_LEVEL_COUNT, levelLabel, levelName, levelTotal, childCountAt,
-  leafItem, groupByDims,
+  flatMembers, buildGroupTree, DEFAULT_ORDER, treeNodeAt, treeLabelsAt,
+  levelName, groupByDims,
 } from '../components/groupingModel.js'
 
 // ---------------------------------------------------------------------------
@@ -43,6 +43,8 @@ export default function RowGroupingAccordionDrillIn() {
   const { columns, dataColumns } = useColumnVisibility('row-grouping-accordion-drill-in', allColumns)
   const minWidth = columns.reduce((sum, col) => sum + widths[col.key], 0)
 
+  const tree = useMemo(() => buildGroupTree(flatMembers, DEFAULT_ORDER), [])
+
   // Single-open top group + drill state scoped to that group.
   //   subPath = []      -> showing the group's level-1 children
   //   subPath = [a, b…] -> drilled deeper; showing children of [gi, a, b, …]
@@ -69,7 +71,7 @@ export default function RowGroupingAccordionDrillIn() {
   const setMicro = (key, value, count) =>
     setMicroPage((p) => ({ ...p, [key]: Math.min(Math.max(1, value), count) }))
 
-  const topTotal = levelTotal(0)
+  const topTotal = tree.children.length
   const topPageCount = Math.max(1, Math.ceil(topTotal / pageSize))
   const currentPage = Math.min(page, topPageCount)
   const startG = (currentPage - 1) * pageSize
@@ -110,8 +112,11 @@ export default function RowGroupingAccordionDrillIn() {
                 // (depth) of the nodes being listed.
                 const fullPath = [gi, ...subPath]
                 const shownLevel = fullPath.length
-                const isLeaf = shownLevel === GROUP_LEVEL_COUNT
-                const total = levelTotal(shownLevel)
+                const node = treeNodeAt(tree, fullPath)
+                const labels = treeLabelsAt(tree, fullPath)
+                const isLeaf = node.isLeaf
+                const rowsAtNode = isLeaf ? node.members : node.children
+                const total = rowsAtNode.length
                 const microKey = `acc-${gi}-${subPath.join('.')}`
                 const micro = getMicro(microKey)
                 const pageCount = Math.max(1, Math.ceil(total / MICRO_PAGE_SIZE))
@@ -137,7 +142,7 @@ export default function RowGroupingAccordionDrillIn() {
                                   className={`dt-split-crumb ${subPath.length === 0 ? 'is-current' : ''}`}
                                   disabled={subPath.length === 0}
                                   onClick={subPath.length === 0 ? undefined : () => drillTo(0)}>
-                                  {levelLabel(0, gi)}
+                                  {labels[0]}
                                 </button>
                                 {subPath.map((sidx, j) => {
                                   const isLast = j === subPath.length - 1
@@ -148,7 +153,7 @@ export default function RowGroupingAccordionDrillIn() {
                                         className={`dt-split-crumb ${isLast ? 'is-current' : ''}`}
                                         disabled={isLast}
                                         onClick={isLast ? undefined : () => drillTo(j + 1)}>
-                                        {levelLabel(j + 1, sidx)}
+                                        {labels[j + 1]}
                                       </button>
                                     </Fragment>
                                   )
@@ -166,7 +171,7 @@ export default function RowGroupingAccordionDrillIn() {
                               )}
                             </div>
                           </div>
-                          {gOpen && (
+                          {gOpen && pageCount > 1 && (
                             <HeaderPager label={`${levelName(shownLevel)}s`} page={micro} pageCount={pageCount}
                               total={total} pageSize={MICRO_PAGE_SIZE}
                               onGoTo={(p) => setMicro(microKey, p, pageCount)} />
@@ -178,6 +183,7 @@ export default function RowGroupingAccordionDrillIn() {
                     {gOpen && !isLeaf &&
                       Array.from({ length: e - s }, (_, k) => {
                         const childIdx = s + k
+                        const childNode = node.children[childIdx]
                         const onOpen = () => drillInto(childIdx)
                         return (
                           <tr
@@ -195,8 +201,8 @@ export default function RowGroupingAccordionDrillIn() {
                           >
                             <td className="dt-cell">
                               <div className="dt-drill-name" style={{ paddingLeft: rowIndent }}>
-                                <TruncatingCell text={levelLabel(shownLevel, childIdx)} className="dt-strong" />
-                                <span className="dt-group-count">{childCountAt(shownLevel)}</span>
+                                <TruncatingCell text={childNode.label} className="dt-strong" />
+                                <span className="dt-group-count">{childNode.count}</span>
                               </div>
                             </td>
                             {dataColumns.map((col, ci) => (
@@ -213,7 +219,7 @@ export default function RowGroupingAccordionDrillIn() {
                     {gOpen && isLeaf &&
                       Array.from({ length: e - s }, (_, k) => {
                         const ii = s + k
-                        const item = leafItem(fullPath, ii)
+                        const item = node.members[ii]
                         return (
                           <tr
                             className={`dt-row ${ii % 2 === 1 ? 'dt-row--alt' : ''}`}
@@ -235,6 +241,7 @@ export default function RowGroupingAccordionDrillIn() {
           </table>
         </div>
 
+        {topPageCount > 1 && (
         <div className="dt-footer">
           <div className="dt-page-size">
             <span className="dt-page-size-label">Groups per page</span>
@@ -257,6 +264,7 @@ export default function RowGroupingAccordionDrillIn() {
             <button type="button" className="dt-page-btn" aria-label="Last page" disabled={currentPage === topPageCount} onClick={() => goToMain(topPageCount)}><PageLast /></button>
           </div>
         </div>
+        )}
       </div>
     </ScenarioShell>
   )

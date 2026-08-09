@@ -2225,6 +2225,62 @@ body.dt-resizing {
   z-index: 1;
 }
 
+/* ==========================================================================
+   Variant: Command Palette + Nested Accordion — Sticky Stacking Pills
+   A scroll-driven breadcrumb that pins just below the sticky column header and
+   accumulates one pill per ancestor of the section currently under the header.
+   It reuses the group-by split styling (.dt-split / .dt-split-main), minus the
+   trailing ✕, and floats over the scroll area as an absolute overlay so it
+   never affects the table's layout.
+   ========================================================================== */
+.dt-table--stack {
+  position: relative;
+}
+
+/* The sticky bar IS the pinned accordion header: a flush, full-width strip
+   (matching the group header's height/background) that sits right below the
+   column header. As you scroll a branch, the group header that pins collapses
+   into this strip as a pill trail — one pill per ancestor — so the header and
+   its sticky pill are the same element, not a header plus a floating chip. */
+.dt-stack-bar {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  z-index: 6;
+  animation: dt-fade-slide var(--dur) var(--ease) both;
+}
+
+.dt-stack-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 11px 0 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 6px 12px -6px rgba(34, 48, 63, 0.22);
+}
+
+.dt-stack-header .dt-stack-crumbs {
+  flex: 1 1 auto;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dt-stack-header .dt-group-count {
+  flex: none;
+}
+
+/* The trailing pill is the group currently pinned — it reads as the header
+   label it replaced; ancestor pills stay actionable (click to scroll up). */
+.dt-stack-header .dt-split-crumb.is-current {
+  color: var(--text);
+}
+
+[data-density='dense'] .dt-stack-header {
+  min-height: 36px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
