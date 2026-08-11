@@ -2226,59 +2226,60 @@ body.dt-resizing {
 }
 
 /* ==========================================================================
-   Variant: Command Palette + Nested Accordion — Sticky Stacking Pills
-   A scroll-driven breadcrumb that pins just below the sticky column header and
-   accumulates one pill per ancestor of the section currently under the header.
-   It reuses the group-by split styling (.dt-split / .dt-split-main), minus the
-   trailing ✕, and floats over the scroll area as an absolute overlay so it
-   never affects the table's layout.
+   Variant: Command Palette + Nested Accordion — In-header pill trail
+   The ancestor breadcrumb lives inside the TOP-LEVEL group's own header row,
+   which pins (position: sticky) right below the column header. Descendants that
+   scroll past collapse into pills appended after the parent's chevron — there's
+   no floating overlay, so no detached shadow or layout gap.
    ========================================================================== */
 .dt-table--stack {
   position: relative;
 }
 
-/* The sticky bar IS the pinned accordion header: a flush, full-width strip
-   (matching the group header's height/background) that sits right below the
-   column header. As you scroll a branch, the group header that pins collapses
-   into this strip as a pill trail — one pill per ancestor — so the header and
-   its sticky pill are the same element, not a header plus a floating chip. */
-.dt-stack-bar {
-  position: absolute;
-  left: 1px;
-  right: 1px;
-  z-index: 6;
-  animation: dt-fade-slide var(--dur) var(--ease) both;
-}
-
-.dt-stack-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 11px 0 12px;
+/* Pin the top-level (depth-0) accordion header just under the sticky column
+   header. Only depth-0 headers pin; deeper levels collapse into this row's pill
+   trail. The published --dt-head-h keeps the offset in step with the measured
+   column-header height (grows when filters are open / in dense mode). */
+.dt-table--stack .dt-grid--pin .dt-group-row[data-level='0'] > .dt-group-cell {
+  position: sticky;
+  top: var(--dt-head-h, 47px);
+  z-index: 5;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 6px 12px -6px rgba(34, 48, 63, 0.22);
+  border-bottom: none;
 }
 
-.dt-stack-header .dt-stack-crumbs {
+/* Draw the pinned header's top/bottom strokes on the inner div, not the <td>:
+   the grid uses border-collapse: collapse, under which box-shadow isn't painted
+   on table cells and collapsed borders stay on the grid (so a border-bottom
+   drops out mid-scroll, leaving a 1px slit). The inner div is a normal block —
+   its box-shadow renders and travels with the pinned cell. Applied always (not
+   only in the trail state) so the strokes never disappear as scrolling begins.
+   The top shadow also covers any sub-pixel gap under the column header. */
+.dt-table--stack .dt-grid--pin .dt-group-row[data-level='0'] > .dt-group-cell > .dt-group-header {
+  box-shadow: 0 -1px 0 var(--border), 0 1px 0 var(--border);
+}
+
+/* The row-reveal animation (dt-fade-slide, fill: both) leaves a lingering
+   transform on every row, which turns each <tr> into its own stacking context
+   and traps the pinned header's z-index inside its row — letting later rows
+   (and their sticky pagers) paint over it. Drop it on the pinned top-level
+   rows so the sticky cell layers cleanly above the scrolling content. */
+.dt-table--stack .dt-grid--pin .dt-group-row[data-level='0'] {
+  animation: none;
+  transform: none;
+}
+
+/* Breadcrumb hosted inside the group header: fill the row and truncate. */
+.dt-group-header .dt-stack-crumbs {
   flex: 1 1 auto;
   padding: 0;
   overflow: hidden;
 }
 
-.dt-stack-header .dt-group-count {
-  flex: none;
-}
-
-/* The trailing pill is the group currently pinned — it reads as the header
+/* The trailing pill is the group currently under the header — it reads as the
    label it replaced; ancestor pills stay actionable (click to scroll up). */
-.dt-stack-header .dt-split-crumb.is-current {
+.dt-group-header .dt-split-crumb.is-current {
   color: var(--text);
-}
-
-[data-density='dense'] .dt-stack-header {
-  min-height: 36px;
 }
 
 @media (prefers-reduced-motion: reduce) {

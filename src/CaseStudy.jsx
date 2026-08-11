@@ -43,7 +43,7 @@ const VARIANT_META = {
   },
   'row-grouping-command-nested-stacked': {
     family: 'Designing for scale',
-    role: 'Over ~5,000 rows: a sticky breadcrumb stacks an ancestor pill per level as you scroll, popping them off as each branch is exhausted.',
+    role: 'Over ~5,000 rows: the top-level group header pins under the column header and hosts the ancestor breadcrumb — each level you scroll past collapses into a pill on that same row, no floating bar.',
   },
 }
 
@@ -140,12 +140,12 @@ const DECISIONS = [
     problem:
       'At ~5,000 rows the nested accordion scrolls far past its own headers, so you lose track of which branch you’re in.',
     options: [
-      'A separate sticky breadcrumb bar rendered above the table.',
-      'Let the accordion header itself transform into the stacked ancestor pill as it sticks.',
+      'A separate sticky breadcrumb bar floated above the table as an absolute overlay.',
+      'Host the ancestor breadcrumb inside the top-level group header itself, pinned under the column header via CSS sticky.',
     ],
     decision:
-      'Made the header and the sticky pill interchangeable — as a level sticks, its header becomes the pill; as a branch is exhausted, its pill pops off.',
-    why: 'No new chrome to explain. The thing that labels a group and the thing that tracks your position are the same object in two states.',
+      'Started with the floating overlay, then collapsed it into the header: the depth-0 group header pins under the column header and its label becomes the pill trail, with each descendant you scroll past appended as a pill after the parent’s chevron.',
+    why: 'The overlay was a second element with its own detached shadow and a layout gap. Making the pinned header the pill trail means one element in two states — nothing extra to explain, and no seam between the header and the thing that tracks your position.',
   },
 ]
 
@@ -221,6 +221,13 @@ export default function CaseStudy() {
   const activeSection = useScrollSpy(SECTIONS.map((s) => s.id))
   const byPath = Object.fromEntries(scenarios.map((s) => [s.path, s]))
 
+  // Under HashRouter the URL hash drives the router, so native `#id` anchors
+  // would be swallowed as a route change instead of scrolling. Scroll manually.
+  const scrollToSection = (e, id) => {
+    e.preventDefault()
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div className="cs">
       {/* ---------------------------------------------------------------- */}
@@ -259,6 +266,7 @@ export default function CaseStudy() {
                 <a
                   href={`#${s.id}`}
                   className={activeSection === s.id ? 'is-active' : ''}
+                  onClick={(e) => scrollToSection(e, s.id)}
                 >
                   {s.label}
                 </a>
