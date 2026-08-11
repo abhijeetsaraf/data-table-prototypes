@@ -221,6 +221,13 @@ export default function CaseStudy() {
   const activeSection = useScrollSpy(SECTIONS.map((s) => s.id))
   const byPath = Object.fromEntries(scenarios.map((s) => [s.path, s]))
 
+  // Under HashRouter the URL hash drives the router, so native `#id` anchors
+  // would be swallowed as a route change instead of scrolling. Scroll manually.
+  const scrollToSection = (e, id) => {
+    e.preventDefault()
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div className="cs">
       {/* ---------------------------------------------------------------- */}
@@ -259,6 +266,7 @@ export default function CaseStudy() {
                 <a
                   href={`#${s.id}`}
                   className={activeSection === s.id ? 'is-active' : ''}
+                  onClick={(e) => scrollToSection(e, s.id)}
                 >
                   {s.label}
                 </a>
