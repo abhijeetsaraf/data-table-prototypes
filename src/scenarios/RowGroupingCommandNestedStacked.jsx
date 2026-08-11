@@ -431,11 +431,15 @@ export default function RowGroupingCommandNestedStacked() {
     const cRect = c.getBoundingClientRect()
     const thead = c.querySelector('thead')
     if (thead) headHRef.current = thead.getBoundingClientRect().height || 47
+    // Publish the column-header height so the pinned top-level group header can
+    // stick right below it via CSS (top: var(--dt-head-h)) without JS layout.
+    c.style.setProperty('--dt-head-h', `${headHRef.current}px`)
     const list = []
     c.querySelectorAll('tr[data-stack-depth]').forEach((el) => {
       const r = el.getBoundingClientRect()
       list.push({
         depth: Number(el.dataset.stackDepth),
+        key: el.dataset.stackKey,
         label: el.dataset.stackLabel,
         count: Number(el.dataset.stackCount),
         y: r.top - cRect.top + c.scrollTop,
@@ -484,12 +488,20 @@ export default function RowGroupingCommandNestedStacked() {
     const e = Math.min(s + MICRO_PAGE_SIZE, itemTotal)
     const childName = depth + 1 < tokens.length ? tokens[depth + 1].name : 'Member'
 
+    // When this top-level group is the one currently pinned under the column
+    // header, host the ancestor breadcrumb inside its own (sticky) header row —
+    // the descendants that have scrolled past collapse into pills right after
+    // the parent's chevron, replacing a separate floating bar.
+    const isTopPinned = depth === 0 && pills.length > 0 && pills[0].key === pathKey
+    const headCount = isTopPinned ? pills[pills.length - 1].count : entry.count
+
     out.push(
       <tr
         key={`h-${pathKey}`}
-        className="dt-group-row dt-nest"
+        className={`dt-group-row dt-nest${isTopPinned ? ' is-pinned-trail' : ''}`}
         data-level={Math.min(depth, 3)}
         data-stack-depth={depth}
+        data-stack-key={pathKey}
         data-stack-label={entry.label}
         data-stack-count={entry.count}
       >
@@ -501,8 +513,29 @@ export default function RowGroupingCommandNestedStacked() {
                 onClick={() => toggleNode(pathKey, depth)}>
                 <span className={`dt-group-chevron ${open ? 'is-open' : ''}`}><ChevronRight /></span>
               </button>
-              <TruncatingCell text={entry.label} className="dt-strong" />
-              <span className="dt-group-count">{entry.count}</span>
+              {isTopPinned ? (
+                <div className="dt-split-main dt-stack-crumbs">
+                  {pills.map((pill, j) => {
+                    const isCurrent = j === pills.length - 1
+                    return (
+                      <Fragment key={`${pill.depth}-${pill.label}`}>
+                        {j > 0 && <span className="dt-split-sep"><ChevronRight /></span>}
+                        <button
+                          type="button"
+                          className={`dt-split-crumb ${isCurrent ? 'is-current' : ''}`}
+                          onClick={() => scrollToPill(pill)}
+                          title={pill.label}
+                        >
+                          {pill.label}
+                        </button>
+                      </Fragment>
+                    )
+                  })}
+                </div>
+              ) : (
+                <TruncatingCell text={entry.label} className="dt-strong" />
+              )}
+              <span className="dt-group-count">{headCount}</span>
             </div>
             {open && microPageCount > 1 && (
               <HeaderPager label={plural(childName)} page={micro} pageCount={microPageCount}
@@ -586,32 +619,6 @@ export default function RowGroupingCommandNestedStacked() {
       }
     >
       <div className="dt-table dt-table--fill dt-table--stack">
-        {grouped && pills.length > 0 && (
-          <div className="dt-stack-bar" style={{ top: headHRef.current + 1 }}>
-            <div className="dt-stack-header" role="group" aria-label="Current group">
-              <div className="dt-split-main dt-stack-crumbs">
-                {pills.map((pill, j) => {
-                  const isCurrent = j === pills.length - 1
-                  return (
-                    <Fragment key={`${pill.depth}-${pill.label}`}>
-                      {j > 0 && <span className="dt-split-sep"><ChevronRight /></span>}
-                      <button
-                        type="button"
-                        className={`dt-split-crumb ${isCurrent ? 'is-current' : ''}`}
-                        onClick={() => scrollToPill(pill)}
-                        title={pill.label}
-                      >
-                        {pill.label}
-                      </button>
-                    </Fragment>
-                  )
-                })}
-              </div>
-              <span className="dt-group-count">{pills[pills.length - 1].count}</span>
-            </div>
-          </div>
-        )}
-
         <div className="dt-columns" ref={scrollRef} onScroll={onScroll}>
           <table className={`dt-grid ${grouped ? 'dt-grid--pin' : ''}`} style={{ width: '100%', minWidth: `${minWidth}px` }}>
             <ColGroup columns={activeColumns} widths={widths} />
