@@ -2377,19 +2377,33 @@ body.dt-resizing {
   color: var(--text);
 }
 
-/* ---- Body layout: sticky TOC + content ---------------------------------- */
+/* ---- Body layout: full-width content; TOC pinned to the page ------------- */
 .cs-body {
   max-width: var(--cs-max);
   margin: 0 auto;
   padding: 24px 24px 96px;
-  display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
-  gap: 48px;
-  align-items: start;
 }
+
+/* The rail is lifted out of the content container and pinned into the left
+   page gutter so it no longer restricts the content width. It sits just left
+   of the centered content column and stays hidden until the hero scrolls away
+   (`.is-visible`), so it never overlaps the hero / role / surface block. */
 .cs-toc {
-  position: sticky;
-  top: 32px;
+  position: fixed;
+  top: 112px;
+  left: calc((100vw - var(--cs-max)) / 2 - 172px);
+  width: 156px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity var(--dur) var(--ease),
+    transform var(--dur) var(--ease), visibility var(--dur) var(--ease);
+  z-index: 6;
+}
+.cs-toc.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
 }
 .cs-toc-label {
   display: block;
@@ -2945,15 +2959,25 @@ body.dt-resizing {
 }
 
 /* ---- Responsive ---------------------------------------------------------- */
-@media (max-width: 980px) {
-  .cs-body {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
+/* Below this width the left gutter is too tight for the pinned rail, so it
+   drops back into the flow as a horizontal pill bar at the top of the body —
+   which lands right where the section list begins, after the hero. */
+@media (max-width: 1495px) {
   .cs-toc {
     position: static;
-    margin-bottom: 8px;
+    left: auto;
+    top: auto;
+    width: auto;
+    max-width: var(--cs-max);
+    margin: 0 auto;
+    padding: 0 24px;
+    opacity: 1;
+    visibility: visible;
+    transform: none;
     overflow-x: auto;
+  }
+  .cs-toc-label {
+    padding-left: 0;
   }
   .cs-toc ul {
     flex-direction: row;
@@ -2967,6 +2991,9 @@ body.dt-resizing {
   .cs-toc a.is-active {
     border-color: var(--accent);
   }
+}
+
+@media (max-width: 980px) {
   .cs-hero-meta {
     grid-template-columns: repeat(2, 1fr);
   }
