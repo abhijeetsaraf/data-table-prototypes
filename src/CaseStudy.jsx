@@ -1,6 +1,36 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { scenarios } from './scenarios.jsx'
+
+// Persist the case-study scroll position so opening a prototype "full screen"
+// (a route change that unmounts this page) and returning — via the in-app
+// "← Back" link or the browser Back button — lands the user exactly where they
+// left off. sessionStorage keeps this per-tab and survives a refresh.
+const SCROLL_KEY = 'caseStudy:scrollY'
+
+function useScrollRestoration() {
+  useLayoutEffect(() => {
+    const saved = Number(sessionStorage.getItem(SCROLL_KEY))
+    if (Number.isFinite(saved) && saved > 0) {
+      // Wait a frame so the (tall) page has laid out before we jump.
+      requestAnimationFrame(() => window.scrollTo(0, saved))
+    }
+
+    let frame = 0
+    const onScroll = () => {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        sessionStorage.setItem(SCROLL_KEY, String(window.scrollY))
+      })
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
+}
 
 // ---------------------------------------------------------------------------
 // Case-study data
@@ -218,8 +248,26 @@ function useScrollSpy(ids) {
 }
 
 export default function CaseStudy() {
+  useScrollRestoration()
   const activeSection = useScrollSpy(SECTIONS.map((s) => s.id))
   const byPath = Object.fromEntries(scenarios.map((s) => [s.path, s]))
+
+  // The left rail is extracted out of the content container and pinned to the
+  // page. It should stay hidden across the hero (role/surface/etc.) and only
+  // reveal once the section list begins — so we show it once the hero has
+  // scrolled out of view.
+  const heroRef = useRef(null)
+  const [showToc, setShowToc] = useState(false)
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowToc(!entry.isIntersecting),
+      { threshold: 0 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // Under HashRouter the URL hash drives the router, so native `#id` anchors
   // would be swallowed as a route change instead of scrolling. Scroll manually.
@@ -233,7 +281,7 @@ export default function CaseStudy() {
       {/* ---------------------------------------------------------------- */}
       {/* Hero */}
       {/* ---------------------------------------------------------------- */}
-      <header className="cs-hero">
+      <header className="cs-hero" ref={heroRef}>
         <div className="cs-hero-inner">
           <p className="cs-eyebrow">Case study · Platform &amp; design system</p>
           <h1 className="cs-hero-title">
@@ -254,27 +302,31 @@ export default function CaseStudy() {
         </div>
       </header>
 
-      <div className="cs-body">
-        {/* -------------------------------------------------------------- */}
-        {/* Sticky table of contents */}
-        {/* -------------------------------------------------------------- */}
-        <nav className="cs-toc" aria-label="Sections">
-          <span className="cs-toc-label">On this page</span>
-          <ul>
-            {SECTIONS.map((s) => (
-              <li key={s.id}>
-                <a
-                  href={`#${s.id}`}
-                  className={activeSection === s.id ? 'is-active' : ''}
-                  onClick={(e) => scrollToSection(e, s.id)}
-                >
-                  {s.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+      {/* ---------------------------------------------------------------- */}
+      {/* Left rail — extracted from the content container and pinned to    */}
+      {/* the page. Revealed once the hero scrolls away (see showToc).      */}
+      {/* ---------------------------------------------------------------- */}
+      <nav
+        className={`cs-toc ${showToc ? 'is-visible' : ''}`}
+        aria-label="Sections"
+      >
+        <span className="cs-toc-label">On this page</span>
+        <ul>
+          {SECTIONS.map((s) => (
+            <li key={s.id}>
+              <a
+                href={`#${s.id}`}
+                className={activeSection === s.id ? 'is-active' : ''}
+                onClick={(e) => scrollToSection(e, s.id)}
+              >
+                {s.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
+      <div className="cs-body">
         <main className="cs-content">
           {/* Overview ------------------------------------------------- */}
           <section id="overview" className="cs-section">
