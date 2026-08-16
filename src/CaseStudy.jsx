@@ -1,6 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import GradientBackground from '@abhijeetsaraf/gradient-background/react'
 import { scenarios } from './scenarios.jsx'
+import HeroCellDemo from './components/HeroCellDemo.jsx'
+import DecisionVisual from './components/DecisionVisuals.jsx'
+
+// The blues from the hero's radial-gradient wash (see `.cs-hero::before` in
+// styles.css), fed to the animated WebGL mesh-gradient as [highlight, shadow].
+const HERO_GRADIENT_COLORS = ['rgba(9, 128, 255, 0.85)', 'rgba(0, 90, 180, 0.72)']
 
 // Persist the case-study scroll position so opening a prototype "full screen"
 // (a route change that unmounts this page) and returning — via the in-app
@@ -100,6 +107,8 @@ const DECISIONS = [
   {
     tag: 'Interaction model',
     title: 'Pagination inside pagination, without the clutter',
+    visual: 'micro-pagers',
+    visualCaption: 'Nested pagers step one density + tone darker per level.',
     problem:
       'Hierarchical groups mean a pager can appear at every level. Stack three of them and the table reads as noise.',
     options: [
@@ -114,6 +123,8 @@ const DECISIONS = [
   {
     tag: 'Consistency',
     title: 'Reuse the drill-in breadcrumb as the group-by builder',
+    visual: 'split-breadcrumb',
+    visualCaption: 'The same split-button drives navigation and grouping.',
     problem:
       'The custom group-by builder needed a way to show and edit the selected dimension sequence. A brand-new chip control would have been a second thing to learn.',
     options: [
@@ -127,6 +138,8 @@ const DECISIONS = [
   {
     tag: 'Knowing when to stop',
     title: 'The wrapping-breadcrumb detour',
+    visual: 'wrapping-crumb',
+    visualCaption: 'A wrapped path became one tall box — so I backed out.',
     problem:
       'Moving the × onto the last crumb exposed a layout edge case: a wrapped breadcrumb rendered as one tall bordered box across all lines.',
     options: [
@@ -141,6 +154,8 @@ const DECISIONS = [
   {
     tag: 'Data fidelity',
     title: 'A faithful data model over a prototype-cheap fake',
+    visual: 'faithful-data',
+    visualCaption: 'One flat dataset; grouped counts sum back to the whole.',
     problem:
       'The original grouping was a fabricated tree where each level’s counts were independent of its parent. Starting flat and then grouping "the same data" wasn’t actually possible.',
     options: [
@@ -154,6 +169,8 @@ const DECISIONS = [
   {
     tag: 'Default state',
     title: 'Always open to the last leaf',
+    visual: 'open-to-leaf',
+    visualCaption: 'Opens to the leaf while keeping siblings in view.',
     problem:
       'When someone groups by APAC → Business Unit, opening straight to the first leaf hides every sibling region — information loss at the exact moment of orientation.',
     options: [
@@ -167,6 +184,8 @@ const DECISIONS = [
   {
     tag: 'One component, two states',
     title: 'The sticky pill IS the accordion header',
+    visual: 'sticky-pill',
+    visualCaption: 'The pinned header itself becomes the ancestor pill trail.',
     problem:
       'At ~5,000 rows the nested accordion scrolls far past its own headers, so you lose track of which branch you’re in.',
     options: [
@@ -186,9 +205,51 @@ const SYSTEM_PIECES = [
   { name: 'TruncatingCell', desc: 'Truncates with an ellipsis and only attaches a tooltip when text is actually clipped — widen the column and the tooltip disappears.' },
   { name: 'Column visibility store', desc: 'A tiny per-table store (persisted to localStorage) shared by the panel toggles and the table, so both stay in sync and the group column is never hideable.' },
   { name: 'Split-button breadcrumb', desc: 'The drill navigation: clickable crumbs to jump levels, × to go up one. Reused verbatim inside the group-by builder.' },
-  { name: 'Micro / header pagers', desc: 'A pager with density + tonal variants so nested pagers read as subordinate to the primary one.' },
-  { name: 'Density + tokens', desc: 'A global density toggle keyed off a data-attribute on the root, driven by a blue-tinted token set so every table reacts without per-table wiring.' },
+  {
+    name: 'Micro / header pagers',
+    desc: 'A pager with density + tonal variants so nested pagers read as subordinate to the primary one — each level pulls the next step of the same surface token.',
+    tokens: [
+      { name: 'polar.surface.action', note: 'Level 0' },
+      { name: 'polar.surface.action.emphasis', note: 'Level 1' },
+      { name: 'polar.surface.action.strong', note: 'Level 2' },
+    ],
+  },
+  {
+    name: 'Density + tokens',
+    desc: 'A global density toggle keyed off a data-attribute on the root, driven by a blue-tinted surface token set so every table reacts without per-table wiring — text stays anchored to one token while only the surface steps.',
+    tokens: [
+      { name: 'polar.surface.action', note: 'Base tint' },
+      { name: 'polar.surface.action.emphasis', note: 'Step +1' },
+      { name: 'polar.surface.action.strong', note: 'Step +2' },
+      { name: 'polar.text.text.primary', note: 'Text (fixed)' },
+    ],
+  },
 ]
+
+// ---------------------------------------------------------------------------
+// TokenPill / TokenList — surface the real design tokens by name.
+// A token pill is code-styled (monospace) and tinted with the light-orange
+// "tooling" family (--ctrl-*) so a referenced token reads as a design-system
+// artifact, distinct from the blue product chrome around it. TokenList renders
+// a small code block of pills, each annotated with the step it drives (used by
+// the density system piece to show the surface token stepping per level).
+// ---------------------------------------------------------------------------
+function TokenPill({ children }) {
+  return <code className="cs-token">{children}</code>
+}
+
+function TokenList({ tokens }) {
+  return (
+    <div className="cs-token-code">
+      {tokens.map((t) => (
+        <div className="cs-token-row" key={t.name}>
+          <TokenPill>{t.name}</TokenPill>
+          {t.note && <span className="cs-token-step">{t.note}</span>}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 // ---------------------------------------------------------------------------
 // LivePreview — click-to-activate framed embed of a real prototype route.
@@ -282,22 +343,33 @@ export default function CaseStudy() {
       {/* Hero */}
       {/* ---------------------------------------------------------------- */}
       <header className="cs-hero" ref={heroRef}>
+        <GradientBackground
+          className="cs-hero-gradient"
+          colors={HERO_GRADIENT_COLORS}
+          style={{ height: '75vh', bottom: 'auto', zIndex: 0 }}
+        />
         <div className="cs-hero-inner">
-          <p className="cs-eyebrow">Case study · Platform &amp; design system</p>
-          <h1 className="cs-hero-title">
-            Designing a data table that scales from ten rows to millions
-          </h1>
-          <p className="cs-hero-lede">
-            Nine interactive prototypes exploring how grouping, pagination, and
-            drill-in should behave in an enterprise data table — built to earn
-            stakeholder buy-in on the <em>feel</em> of the interaction, not just
-            a static mock.
-          </p>
+          <div className="cs-hero-top">
+            <div className="cs-hero-head">
+              <p className="cs-eyebrow t-eyebrow">Case study · Platform &amp; design system</p>
+              <h1 className="cs-hero-title t-display">
+                Designing a data table that scales from ten rows to millions
+              </h1>
+              <p className="cs-hero-lede t-lead">
+                Exploratory prototypes for bridging the gaps between the
+                multiple verticals that consume data tables — the same
+                structure has to behave differently in a conversational
+                surface than in a report. Built to earn stakeholder buy-in on
+                the <em>feel</em> of the interaction.
+              </p>
+            </div>
+            <HeroCellDemo />
+          </div>
           <dl className="cs-hero-meta">
-            <div><dt>Role</dt><dd>Platform &amp; Design System Designer</dd></div>
-            <div><dt>Surface</dt><dd>Enterprise reporting data table</dd></div>
-            <div><dt>Craft</dt><dd>Figma → React · Polar UI</dd></div>
-            <div><dt>Artifacts</dt><dd>9 live prototypes</dd></div>
+            <div><dt className="t-eyebrow-strong">Role</dt><dd className="t-body-sm">Platform &amp; Design System Designer</dd></div>
+            <div><dt className="t-eyebrow-strong">Surface</dt><dd className="t-body-sm">Agents, Platform &amp; Analytics</dd></div>
+            <div><dt className="t-eyebrow-strong">Craft</dt><dd className="t-body-sm">React · TypeScript · Figma</dd></div>
+            <div><dt className="t-eyebrow-strong">Artifacts</dt><dd className="t-body-sm">9 live prototypes</dd></div>
           </dl>
         </div>
       </header>
@@ -310,13 +382,13 @@ export default function CaseStudy() {
         className={`cs-toc ${showToc ? 'is-visible' : ''}`}
         aria-label="Sections"
       >
-        <span className="cs-toc-label">On this page</span>
+        <span className="cs-toc-label t-eyebrow-strong">On this page</span>
         <ul>
           {SECTIONS.map((s) => (
             <li key={s.id}>
               <a
                 href={`#${s.id}`}
-                className={activeSection === s.id ? 'is-active' : ''}
+                className={`t-body-sm ${activeSection === s.id ? 'is-active' : ''}`}
                 onClick={(e) => scrollToSection(e, s.id)}
               >
                 {s.label}
@@ -330,37 +402,41 @@ export default function CaseStudy() {
         <main className="cs-content">
           {/* Overview ------------------------------------------------- */}
           <section id="overview" className="cs-section">
-            <h2 className="cs-h2">Overview</h2>
-            <p className="cs-lead">
-              Enterprise data tables carry two conflicting jobs at once: give a
-              knowledgeable user everything, and never overwhelm them. This
-              project attacked that tension through row grouping — the point
-              where a flat table turns into a hierarchy and every interaction
-              question multiplies.
+            <h2 className="cs-h2 t-h1">Overview</h2>
+            <p className="cs-lead t-lead">
+              As Highspot scaled, every vertical built its data tables to its
+              own requirements — so users had to relearn the interaction each
+              time they encountered a table. This case study pairs research
+              with PMs and executives, mapping the specific actions users take,
+              with a deliberate constraint on designer and developer freedom to
+              converge on one consistent experience. Row grouping was the
+              hardest of these problems, and the one I solved through
+              prototyping.
             </p>
             <div className="cs-callouts">
               <div className="cs-callout">
-                <span className="cs-callout-k">The ask</span>
-                <p>
+                <span className="cs-callout-k t-eyebrow-strong">The ask</span>
+                <p className="t-body-sm">
                   Establish the interaction patterns for grouping, nested
                   pagination, and drill-in — convincingly enough to align
                   stakeholders before engineering committed.
                 </p>
               </div>
               <div className="cs-callout">
-                <span className="cs-callout-k">My approach</span>
-                <p>
+                <span className="cs-callout-k t-eyebrow-strong">My approach</span>
+                <p className="t-body-sm">
                   Treat prototypes as the argument. Ship many small, real,
                   clickable variants on top of one shared component kit instead
                   of debating flat comps.
                 </p>
               </div>
               <div className="cs-callout">
-                <span className="cs-callout-k">Outcome</span>
-                <p>
+                <span className="cs-callout-k t-eyebrow-strong">Outcome</span>
+                <p className="t-body-sm">
                   A comparable set of live options that turned "which direction?"
-                  into a hands-on decision, and a reusable table kit that made
-                  each new variant cheaper than the last.
+                  into a hands-on decision — an iterative study, presented to
+                  stakeholders, that surfaced the exact patterns users rely on
+                  to read data at scale.
                 </p>
               </div>
             </div>
@@ -368,38 +444,38 @@ export default function CaseStudy() {
 
           {/* Problem -------------------------------------------------- */}
           <section id="problem" className="cs-section">
-            <h2 className="cs-h2">The problem</h2>
-            <p className="cs-lead">
+            <h2 className="cs-h2 t-h1">The problem</h2>
+            <p className="cs-lead t-lead">
               Grouping is where a data table stops being a list and becomes a
               tree — and trees break the assumptions a flat table is built on.
             </p>
             <div className="cs-grid-2">
               <div className="cs-prob">
-                <h3>Pagination inside pagination</h3>
-                <p>
+                <h3 className="t-h4">Pagination inside pagination</h3>
+                <p className="t-body-sm">
                   Every group can have more children than fit. Naively, that
                   means a pager at every level — a stack of near-identical
                   controls competing for attention.
                 </p>
               </div>
               <div className="cs-prob">
-                <h3>Depth causes information loss</h3>
-                <p>
+                <h3 className="t-h4">Depth causes information loss</h3>
+                <p className="t-body-sm">
                   Drilling from a region into a business unit can silently hide
                   every sibling. The user gets focus but loses their map.
                 </p>
               </div>
               <div className="cs-prob">
-                <h3>Grouping is user-defined</h3>
-                <p>
+                <h3 className="t-h4">Grouping is user-defined</h3>
+                <p className="t-body-sm">
                   Real hierarchies aren’t fixed. Users pick the dimensions and
                   their order — potentially hundreds of combinations, several
                   levels deep.
                 </p>
               </div>
               <div className="cs-prob">
-                <h3>Scale is unforgiving</h3>
-                <p>
+                <h3 className="t-h4">Scale is unforgiving</h3>
+                <p className="t-body-sm">
                   Behind an index, a table can be millions of records. Sticky
                   context, lazy loading, and orientation-while-scrolling stop
                   being nice-to-haves.
@@ -410,13 +486,13 @@ export default function CaseStudy() {
 
           {/* Principles ----------------------------------------------- */}
           <section id="principles" className="cs-section">
-            <h2 className="cs-h2">Principles I held to</h2>
+            <h2 className="cs-h2 t-h1">Principles I held to</h2>
             <ol className="cs-principles">
               <li>
                 <span className="cs-num">01</span>
                 <div>
-                  <h3>Prototype the interaction, fake the logic</h3>
-                  <p>
+                  <h3 className="t-h4">Prototype the interaction, fake the logic</h3>
+                  <p className="t-body-sm">
                     These are buy-in prototypes. Synthetic data and real
                     gestures beat production plumbing and a static screen.
                   </p>
@@ -425,8 +501,8 @@ export default function CaseStudy() {
               <li>
                 <span className="cs-num">02</span>
                 <div>
-                  <h3>One kit, many variants</h3>
-                  <p>
+                  <h3 className="t-h4">One kit, many variants</h3>
+                  <p className="t-body-sm">
                     Every option is a thin body over a shared shell, header,
                     pager, and breadcrumb. Consistency comes for free and each
                     new variant costs less.
@@ -436,8 +512,8 @@ export default function CaseStudy() {
               <li>
                 <span className="cs-num">03</span>
                 <div>
-                  <h3>Reuse gestures, don’t invent them</h3>
-                  <p>
+                  <h3 className="t-h4">Reuse gestures, don’t invent them</h3>
+                  <p className="t-body-sm">
                     A control the user already understands in one place should
                     look and behave the same everywhere else it appears.
                   </p>
@@ -446,8 +522,8 @@ export default function CaseStudy() {
               <li>
                 <span className="cs-num">04</span>
                 <div>
-                  <h3>Name the tradeoff</h3>
-                  <p>
+                  <h3 className="t-h4">Name the tradeoff</h3>
+                  <p className="t-body-sm">
                     Every fork — more scroll vs. more clicks, faithful vs. cheap
                     — was decided out loud, not defaulted into.
                   </p>
@@ -458,8 +534,8 @@ export default function CaseStudy() {
 
           {/* Process -------------------------------------------------- */}
           <section id="process" className="cs-section">
-            <h2 className="cs-h2">The exploration, phase by phase</h2>
-            <p className="cs-lead">
+            <h2 className="cs-h2 t-h1">The exploration, phase by phase</h2>
+            <p className="cs-lead t-lead">
               The nine prototypes weren’t parallel guesses; they’re an arc.
               Each phase answered the question the previous one raised.
             </p>
@@ -474,13 +550,13 @@ export default function CaseStudy() {
                       <span className="cs-phase-num">{`0${i + 1}`}</span>
                     </div>
                     <div className="cs-phase-body">
-                      <h3 className="cs-phase-title">{family}</h3>
+                      <h3 className="cs-phase-title t-h3">{family}</h3>
                       <ul className="cs-phase-list">
                         {items.map((s) => (
                           <li key={s.path}>
                             <Link to={`/${s.path}`} className="cs-phase-link">
-                              <span className="cs-phase-name">{s.title}</span>
-                              <span className="cs-phase-role">
+                              <span className="cs-phase-name t-h4">{s.title}</span>
+                              <span className="cs-phase-role t-body-sm">
                                 {VARIANT_META[s.path].role}
                               </span>
                             </Link>
@@ -496,8 +572,8 @@ export default function CaseStudy() {
 
           {/* Decisions ------------------------------------------------ */}
           <section id="decisions" className="cs-section">
-            <h2 className="cs-h2">Key design decisions</h2>
-            <p className="cs-lead">
+            <h2 className="cs-h2 t-h1">Key design decisions</h2>
+            <p className="cs-lead t-lead">
               The variants are the surface. These are the calls underneath them
               — each a small problem, a set of options, and the reasoning for
               where it landed.
@@ -505,24 +581,27 @@ export default function CaseStudy() {
             <div className="cs-decisions">
               {DECISIONS.map((d) => (
                 <article className="cs-decision" key={d.title}>
-                  <span className="cs-decision-tag">{d.tag}</span>
-                  <h3 className="cs-decision-title">{d.title}</h3>
-                  <p className="cs-decision-problem">{d.problem}</p>
+                  <span className="cs-decision-tag t-eyebrow-strong">{d.tag}</span>
+                  <h3 className="cs-decision-title t-h3">{d.title}</h3>
+                  <p className="cs-decision-problem t-body-sm">{d.problem}</p>
+                  {d.visual && (
+                    <DecisionVisual kind={d.visual} caption={d.visualCaption} />
+                  )}
                   <div className="cs-decision-block">
-                    <span className="cs-decision-k">Options weighed</span>
+                    <span className="cs-decision-k t-eyebrow-strong">Options weighed</span>
                     <ul>
                       {d.options.map((o) => (
-                        <li key={o}>{o}</li>
+                        <li key={o} className="t-body-sm">{o}</li>
                       ))}
                     </ul>
                   </div>
                   <div className="cs-decision-block">
-                    <span className="cs-decision-k">Decision</span>
-                    <p>{d.decision}</p>
+                    <span className="cs-decision-k t-eyebrow-strong">Decision</span>
+                    <p className="t-body-sm">{d.decision}</p>
                   </div>
                   <div className="cs-decision-block cs-decision-why">
-                    <span className="cs-decision-k">Why</span>
-                    <p>{d.why}</p>
+                    <span className="cs-decision-k t-eyebrow-strong">Why</span>
+                    <p className="t-body-sm">{d.why}</p>
                   </div>
                 </article>
               ))}
@@ -531,8 +610,8 @@ export default function CaseStudy() {
 
           {/* System --------------------------------------------------- */}
           <section id="system" className="cs-section">
-            <h2 className="cs-h2">The system underneath</h2>
-            <p className="cs-lead">
+            <h2 className="cs-h2 t-h1">The system underneath</h2>
+            <p className="cs-lead t-lead">
               Because I was wearing the design-system hat, the real deliverable
               wasn’t nine screens — it was the shared kit that made nine screens
               feel like one product.
@@ -541,7 +620,8 @@ export default function CaseStudy() {
               {SYSTEM_PIECES.map((p) => (
                 <div className="cs-chip-card" key={p.name}>
                   <code className="cs-chip-name">{p.name}</code>
-                  <p>{p.desc}</p>
+                  <p className="t-body-sm">{p.desc}</p>
+                  {p.tokens && <TokenList tokens={p.tokens} />}
                 </div>
               ))}
             </div>
@@ -549,8 +629,8 @@ export default function CaseStudy() {
 
           {/* Gallery -------------------------------------------------- */}
           <section id="gallery" className="cs-section">
-            <h2 className="cs-h2">Live artifacts</h2>
-            <p className="cs-lead">
+            <h2 className="cs-h2 t-h1">Live artifacts</h2>
+            <p className="cs-lead t-lead">
               Every prototype below is the real, running interaction — not a
               screenshot. Launch one inline, or open it full-screen.
             </p>
@@ -558,14 +638,14 @@ export default function CaseStudy() {
               {scenarios.map((s, i) => (
                 <figure className="cs-artifact" key={s.path}>
                   <figcaption className="cs-artifact-cap">
-                    <span className="cs-artifact-index">
+                    <span className="cs-artifact-index t-eyebrow-strong">
                       {String(i + 1).padStart(2, '0')}
                     </span>
-                    <span className="cs-artifact-family">
+                    <span className="cs-artifact-family t-eyebrow-strong">
                       {VARIANT_META[s.path]?.family}
                     </span>
-                    <h3 className="cs-artifact-title">{s.title}</h3>
-                    <p className="cs-artifact-desc">
+                    <h3 className="cs-artifact-title t-h3">{s.title}</h3>
+                    <p className="cs-artifact-desc t-body-sm">
                       {VARIANT_META[s.path]?.role || s.description}
                     </p>
                   </figcaption>
@@ -577,11 +657,11 @@ export default function CaseStudy() {
 
           {/* Reflection ----------------------------------------------- */}
           <section id="reflection" className="cs-section">
-            <h2 className="cs-h2">Reflection &amp; what’s next</h2>
+            <h2 className="cs-h2 t-h1">Reflection &amp; what’s next</h2>
             <div className="cs-grid-2">
               <div className="cs-reflect">
-                <h3>What worked</h3>
-                <p>
+                <h3 className="t-h4">What worked</h3>
+                <p className="t-body">
                   Building the argument as clickable variants collapsed weeks of
                   circular debate. The shared kit meant feedback on one table
                   improved all of them, and the faithful data model kept the
@@ -589,8 +669,8 @@ export default function CaseStudy() {
                 </p>
               </div>
               <div className="cs-reflect">
-                <h3>What I’d do next</h3>
-                <p>
+                <h3 className="t-h4">What I’d do next</h3>
+                <p className="t-body">
                   Make grouped-mode sort and filter fully functional against the
                   derived tree, promote the inline accordion into a shared
                   component, and prototype real lazy loading against the
@@ -601,7 +681,7 @@ export default function CaseStudy() {
           </section>
 
           <footer className="cs-footer">
-            <p>
+            <p className="t-body">
               Prototyped in React + Vite on the Polar UI design system. Nine
               routes, one shared table kit.
             </p>

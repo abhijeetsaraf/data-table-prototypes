@@ -2314,33 +2314,60 @@ body.dt-resizing {
 
 /* ---- Hero ---------------------------------------------------------------- */
 .cs-hero {
+  position: relative;
   padding: 88px 24px 40px;
 }
+/* Two stacked wash layers frame the hero without competing with the copy:
+   `.cs-hero-gradient` is the animated WebGL mesh-gradient (via
+   @abhijeetsaraf/gradient-background) at the base (z-index 0), and this static
+   radial-gradient rides on top of it (z-index 1) to anchor a steady blue edge
+   regardless of the animation phase. The content (`.cs-hero-inner`, also
+   z-index 1) still paints above both by DOM order. The static layer is
+   top-anchored and mostly transparent, concentrating its blue at the lower
+   edge so it fades out before a hard horizontal cut. */
+.cs-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 75vh;
+  background:
+    radial-gradient(
+      100% 100% at 50% 100%,
+      rgba(9, 128, 255, 0) 74%,
+      rgba(6, 113, 227, 0.4) 88%,
+      rgba(0, 92, 213, 0.70) 96%,
+      rgba(0, 90, 180, 0.72) 100%
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+.cs-hero-gradient {
+  position: absolute;
+  inset: 0 0 auto 0;
+  bottom: auto;
+  height: 75vh;
+  pointer-events: none;
+  z-index: 0;
+}
 .cs-hero-inner {
+  position: relative;
+  z-index: 1;
   max-width: var(--cs-max);
   margin: 0 auto;
   animation: cs-rise var(--dur-slow) var(--ease) both;
 }
+/* Typography (family/size/weight/tracking/leading) lives on the .t-* classes
+   in typography.css. The cs-* rules keep only colour + layout. */
 .cs-eyebrow {
   margin: 0 0 18px;
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--accent);
+  color: var(--text);
 }
 .cs-hero-title {
   margin: 0;
-  font-size: clamp(34px, 5.4vw, 62px);
-  line-height: 1.04;
-  letter-spacing: -0.02em;
-  font-weight: 700;
   max-width: 15ch;
 }
 .cs-hero-lede {
   margin: 24px 0 0;
-  font-size: clamp(17px, 2vw, 21px);
-  line-height: 1.55;
   color: var(--text-muted);
   max-width: 60ch;
 }
@@ -2363,18 +2390,264 @@ body.dt-resizing {
   padding: 18px 20px;
 }
 .cs-hero-meta dt {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--text-subtle);
   margin: 0 0 6px;
 }
 .cs-hero-meta dd {
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
   color: var(--text);
+}
+
+/* Top row of the hero: heading block on the left, a triangular slice of a live
+   data table filling the previously empty space on the right. */
+.cs-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+}
+.cs-hero-head {
+  flex: 0 1 auto;
+  min-width: 0;
+  align-self: center;
+}
+.cs-hero-head .cs-hero-title {
+  max-width: 14ch;
+}
+.cs-hero-head .cs-hero-lede {
+  max-width: 44ch;
+}
+
+/* ==========================================================================
+   HeroCellDemo — a sparse, triangular slice of a real data table with one
+   live cell that loops the editable-cell lifecycle (keyboard-first):
+   idle → focus → open → navigate → selected → save → sync → loop.
+
+   The triangle is built from the data itself: each column carries a different
+   number of rows (short on the left → tallest on the right), so no clip mask
+   is needed and the staircased edge cuts real cells.
+   ========================================================================== */
+.cs-ht {
+  flex: 0 1 auto;
+  align-self: center;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: visible;
+  animation: cs-rise var(--dur-slow) var(--ease) both;
+}
+.cs-ht-col {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+}
+.cs-ht-cell {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 14px;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.cs-ht-h {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  border-bottom-color: var(--border);
+}
+.cs-ht-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The live cell lets its editor escape the cell box and sit above neighbours. */
+.cs-ht-anim {
+  position: relative;
+  z-index: 5;
+  overflow: visible;
+  color: var(--text);
+}
+
+/* ---- Read state (idle / focus / sync) ---- */
+.cs-cd-read {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% + 4px);
+  margin: 0 -2px;
+  height: 34px;
+  padding: 0 6px;
+  border-radius: 7px;
+  transition: box-shadow var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+.cs-cd-read.is-focus {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.cs-cd-read-text {
+  flex: 1 1 auto;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.cs-cd-read-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.cs-cd-pencil {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  animation: dt-fade-slide var(--dur) var(--ease) both;
+}
+.cs-cd-syncmark {
+  color: var(--accent);
+  animation: dt-fade var(--dur) var(--ease) both;
+}
+
+/* ---- Edit state — inline editor overlay (select + actions + listbox) ---- */
+/* Anchored to both edges of the cell (with a small inset) so the editor is
+   always sized to the cell and can never spill past it — the select flexes to
+   fill whatever space the fixed-width action buttons leave. */
+/* Vertically centered via transform. The entrance animation MUST preserve that
+   translateY(-50%) in its keyframes — a plain fade-slide ends on translateY(0)
+   which (with fill: both) overrides the centering and drops the editor down. */
+.cs-cd-editor {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  right: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 6;
+  animation: cs-cd-editor-in var(--dur) var(--ease) both;
+}
+@keyframes cs-cd-editor-in {
+  from { opacity: 0; transform: translateY(-50%) translateY(-3px); }
+  to { opacity: 1; transform: translateY(-50%); }
+}
+.cs-cd-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.cs-cd-select-val {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.cs-cd-select-chev {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+.cs-cd-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: default;
+  transition: box-shadow var(--dur) var(--ease), background-color var(--dur) var(--ease),
+    color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.cs-cd-save.is-focus {
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.cs-cd-save.is-press {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  transform: scale(0.94);
+}
+
+/* Open listbox — absolutely positioned so it overlays without resizing. It
+   tracks the select's width (anchored under it, clear of the action buttons)
+   and never extends past the cell. */
+.cs-cd-listbox {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 72px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 16px 34px -20px rgba(34, 48, 63, 0.55);
+  z-index: 2;
+  transform-origin: top center;
+  animation: cs-cd-pop var(--dur) var(--ease) both;
+}
+@keyframes cs-cd-pop {
+  from { opacity: 0; transform: translateY(-6px) scaleY(0.96); }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+.cs-cd-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 14px;
+  color: var(--text);
+  transition: background-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+.cs-cd-opt.is-selected {
+  color: var(--accent);
+  font-weight: 600;
+}
+.cs-cd-opt.is-active {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.cs-cd-opt-check {
+  display: inline-flex;
+  width: 12px;
+  color: var(--accent);
+}
+.cs-cd-opt-text {
+  flex: 1 1 auto;
+}
+
+.cs-cd-spin {
+  animation: cs-cd-rotate 0.9s linear infinite;
+}
+@keyframes cs-cd-rotate {
+  to { transform: rotate(360deg); }
 }
 
 /* ---- Body layout: full-width content; TOC pinned to the page ------------- */
@@ -2407,10 +2680,6 @@ body.dt-resizing {
 }
 .cs-toc-label {
   display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
   color: var(--text-subtle);
   margin: 0 0 14px;
   padding-left: 12px;
@@ -2426,7 +2695,6 @@ body.dt-resizing {
 .cs-toc a {
   display: block;
   padding: 7px 12px;
-  font-size: 14px;
   color: var(--text-muted);
   text-decoration: none;
   border-left: 2px solid transparent;
@@ -2460,15 +2728,9 @@ body.dt-resizing {
   padding-top: 8px;
 }
 .cs-h2 {
-  font-size: clamp(24px, 3vw, 32px);
-  line-height: 1.15;
-  letter-spacing: -0.015em;
   margin: 0 0 18px;
-  font-weight: 700;
 }
 .cs-lead {
-  font-size: 17.5px;
-  line-height: 1.6;
   color: var(--text-muted);
   max-width: 66ch;
   margin: 0 0 28px;
@@ -2488,17 +2750,11 @@ body.dt-resizing {
 }
 .cs-callout-k {
   display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--accent);
   margin-bottom: 10px;
 }
 .cs-callout p {
   margin: 0;
-  font-size: 14.5px;
-  line-height: 1.55;
   color: var(--text-muted);
 }
 
@@ -2525,13 +2781,9 @@ body.dt-resizing {
 }
 .cs-prob h3 {
   margin: 0 0 8px;
-  font-size: 17px;
-  font-weight: 700;
 }
 .cs-prob p {
   margin: 0;
-  font-size: 14.5px;
-  line-height: 1.55;
   color: var(--text-muted);
 }
 
@@ -2563,13 +2815,9 @@ body.dt-resizing {
 }
 .cs-principles h3 {
   margin: 2px 0 6px;
-  font-size: 16.5px;
-  font-weight: 700;
 }
 .cs-principles p {
   margin: 0;
-  font-size: 14.5px;
-  line-height: 1.55;
   color: var(--text-muted);
 }
 
@@ -2617,8 +2865,6 @@ body.dt-resizing {
 }
 .cs-phase-title {
   margin: 8px 0 14px;
-  font-size: 20px;
-  font-weight: 700;
 }
 .cs-phase-list {
   list-style: none;
@@ -2646,14 +2892,10 @@ body.dt-resizing {
 }
 .cs-phase-name {
   display: block;
-  font-size: 15.5px;
-  font-weight: 600;
   margin-bottom: 4px;
 }
 .cs-phase-role {
   display: block;
-  font-size: 14px;
-  line-height: 1.5;
   color: var(--text-muted);
 }
 
@@ -2673,10 +2915,6 @@ body.dt-resizing {
 }
 .cs-decision-tag {
   align-self: flex-start;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--accent);
   background: var(--accent-soft);
   border: 1px solid var(--border);
@@ -2686,14 +2924,9 @@ body.dt-resizing {
 }
 .cs-decision-title {
   margin: 0 0 10px;
-  font-size: 19px;
-  line-height: 1.25;
-  font-weight: 700;
 }
 .cs-decision-problem {
   margin: 0 0 16px;
-  font-size: 14.5px;
-  line-height: 1.55;
   color: var(--text-muted);
 }
 .cs-decision-block {
@@ -2701,10 +2934,6 @@ body.dt-resizing {
 }
 .cs-decision-k {
   display: block;
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--text-subtle);
   margin-bottom: 6px;
 }
@@ -2713,15 +2942,11 @@ body.dt-resizing {
   padding-left: 18px;
 }
 .cs-decision-block li {
-  font-size: 14px;
-  line-height: 1.5;
   color: var(--text-muted);
   margin-bottom: 5px;
 }
 .cs-decision-block p {
   margin: 0;
-  font-size: 14.5px;
-  line-height: 1.55;
   color: var(--text);
 }
 .cs-decision-why {
@@ -2733,6 +2958,287 @@ body.dt-resizing {
 .cs-decision-why p {
   color: var(--text-muted);
 }
+
+/* ---- Decision visuals ---------------------------------------------------- */
+/* A framed, non-interactive "preview" of the specific artifact each decision
+   card is about. Reuses the real dt-* component classes so the mini demo reads
+   as the same component seen in the live scenarios. */
+.cs-dv {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 2px 0 16px;
+}
+.cs-dv-label {
+  color: var(--text-subtle);
+}
+.cs-dv-canvas {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 1px 1px, var(--border-soft) 1px, transparent 0)
+    0 0 / 14px 14px,
+    var(--bg-tint);
+  padding: 16px;
+  overflow: hidden;
+}
+.cs-dv-caption {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.cs-dv-inline {
+  display: inline-flex;
+  align-items: center;
+}
+.cs-dv-mini-k {
+  display: block;
+  color: var(--text-subtle);
+  margin-bottom: 6px;
+}
+.cs-dv-labeled {
+  min-width: 0;
+}
+.cs-dv-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* A read-only number "field" mirroring dt-number-field without an input. */
+.cs-dv-field {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+
+/* 1 — stacked micro-pagers */
+.cs-dv-micro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cs-dv-micro-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.cs-dv-micro-row .dt-micro-pagination {
+  gap: 10px;
+}
+.cs-dv-tone-0 {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.cs-dv-tone-1 {
+  background: var(--bg-tint-strong);
+}
+.cs-dv-tone-2 {
+  background: var(--action);
+}
+.cs-dv-tone-1 .dt-page-btn { background: var(--action); }
+.cs-dv-tone-2 .dt-page-btn { background: var(--action-2); }
+
+/* 2 & 3 — split breadcrumb previews */
+.cs-dv-detour {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cs-dv-k-bad { color: #b0653a; }
+.cs-dv-k-good { color: var(--accent); }
+/* The abandoned wrapped-breadcrumb state: a single tall bordered container. */
+.cs-dv-wrapbox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  max-width: 220px;
+  padding: 4px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+/* 4 — faithful data model */
+.cs-dv-fidelity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cs-dv-mini-table {
+  flex: 1;
+  min-width: 0;
+}
+.cs-dv-flat,
+.cs-dv-grouped {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--text);
+}
+.cs-dv-flat li,
+.cs-dv-grouped li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+}
+.cs-dv-flat li + li,
+.cs-dv-grouped li + li {
+  border-top: 1px solid var(--border-soft);
+}
+.cs-dv-flat i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--action-2);
+  flex: none;
+}
+.cs-dv-flat span,
+.cs-dv-grouped span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cs-dv-grouped li b {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.cs-dv-more {
+  color: var(--text-subtle);
+  font-style: italic;
+}
+.cs-dv-total {
+  color: var(--accent);
+  font-weight: 700;
+}
+.cs-dv-total b { color: var(--accent) !important; }
+.cs-dv-arrow {
+  display: inline-flex;
+  color: var(--text-subtle);
+  flex: none;
+}
+
+/* 5 — open-to-leaf accordion */
+.cs-dv-accordion {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.cs-dv-acc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--text);
+}
+.cs-dv-acc-row + .cs-dv-acc-row {
+  border-top: 1px solid var(--border-soft);
+}
+.cs-dv-acc-row.is-leaf {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.cs-dv-acc-row.is-sibling {
+  color: var(--text-subtle);
+}
+.cs-dv-acc-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cs-dv-acc-count {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.cs-dv-leaf-dot {
+  width: 6px;
+  height: 6px;
+  margin: 0 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  flex: none;
+}
+
+/* shared chevron used by fidelity, accordion, sticky */
+.cs-dv-chev {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-subtle);
+  flex: none;
+  transition: transform var(--dur) var(--ease);
+}
+.cs-dv-chev.is-open {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+/* 6 — sticky pill trail */
+.cs-dv-sticky {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.cs-dv-colhead {
+  padding: 7px 12px;
+  color: var(--text-subtle);
+  background: var(--bg-tint-strong);
+  border-bottom: 1px solid var(--border);
+}
+.cs-dv-pinned {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 6px rgba(34, 48, 63, 0.06);
+}
+.cs-dv-pinned .dt-split-crumb {
+  padding: 4px 6px;
+}
+.cs-dv-pin-tag {
+  margin-left: auto;
+  color: var(--text-subtle);
+  background: var(--bg-tint-strong);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.cs-dv-scrollrows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.cs-dv-scrollrows span {
+  height: 8px;
+  border-radius: 3px;
+  background: var(--bg-tint-strong);
+}
+.cs-dv-scrollrows span:nth-child(2) { width: 82%; }
+.cs-dv-scrollrows span:nth-child(3) { width: 64%; }
 
 /* ---- System chips -------------------------------------------------------- */
 .cs-system {
@@ -2759,9 +3265,54 @@ body.dt-resizing {
 }
 .cs-chip-card p {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.55;
   color: var(--text-muted);
+}
+
+/* ---- Design-token pills -------------------------------------------------- */
+/* A referenced design token, code-styled and tinted with the light-orange
+   "tooling" family so it reads as a design-system artifact rather than product
+   chrome. --sm is the compact variant used inline in decorative previews. */
+.cs-token {
+  display: inline-flex;
+  align-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ctrl-accent);
+  background: var(--ctrl-bg-inner);
+  border: 1px solid var(--ctrl-border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.cs-token--sm {
+  font-size: 10.5px;
+  padding: 1px 6px;
+}
+/* A small orange code block grouping the tokens a piece is built on. */
+.cs-token-code {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--ctrl-bg);
+  border: 1px solid var(--ctrl-border-soft);
+}
+.cs-token-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cs-token-step {
+  font-family: var(--font-condensed);
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ctrl-text-subtle);
 }
 
 /* ---- Live artifact gallery ---------------------------------------------- */
@@ -2782,28 +3333,17 @@ body.dt-resizing {
   border-bottom: 1px solid var(--border-soft);
 }
 .cs-artifact-index {
-  font-size: 12px;
-  font-weight: 700;
   color: var(--text-subtle);
-  letter-spacing: 0.05em;
 }
 .cs-artifact-family {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--accent);
   margin-left: 10px;
 }
 .cs-artifact-title {
   margin: 10px 0 6px;
-  font-size: 19px;
-  font-weight: 700;
 }
 .cs-artifact-desc {
   margin: 0;
-  font-size: 14.5px;
-  line-height: 1.55;
   color: var(--text-muted);
   max-width: 72ch;
 }
@@ -2915,13 +3455,9 @@ body.dt-resizing {
 }
 .cs-reflect h3 {
   margin: 0 0 10px;
-  font-size: 17px;
-  font-weight: 700;
 }
 .cs-reflect p {
   margin: 0;
-  font-size: 14.5px;
-  line-height: 1.6;
   color: var(--text-muted);
 }
 .cs-footer {
@@ -2938,8 +3474,6 @@ body.dt-resizing {
 }
 .cs-footer p {
   margin: 0;
-  font-size: 15px;
-  line-height: 1.5;
   opacity: 0.92;
   max-width: 46ch;
 }
@@ -2994,6 +3528,17 @@ body.dt-resizing {
 }
 
 @media (max-width: 980px) {
+  .cs-hero-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 36px;
+  }
+  .cs-hero-head .cs-hero-title {
+    max-width: 15ch;
+  }
+  .cs-hero-head .cs-hero-lede {
+    max-width: 60ch;
+  }
   .cs-hero-meta {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -3009,6 +3554,9 @@ body.dt-resizing {
 @media (max-width: 560px) {
   .cs-hero {
     padding-top: 56px;
+  }
+  .cs-ht {
+    display: none;
   }
   .cs-hero-meta {
     grid-template-columns: 1fr;

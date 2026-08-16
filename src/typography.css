@@ -1,0 +1,59 @@
+/* Noto Sans Condensed — not available via next/font, loaded via CSS @import (per spec). */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Condensed:ital,wght@0,100..900;1,100..900&display=swap');
+
+/* ==========================================================================
+   PORTFOLIO TYPOGRAPHY SYSTEM — single source of truth
+   --------------------------------------------------------------------------
+   Ported from the portfolio's typography spec. In the portfolio, the Noto
+   fonts load via next/font (Google) and expose CSS variables on <html>
+   (--font-noto-sans / --font-noto-serif / --font-noto-devanagari), and colour
+   lives on Tailwind text-dark-* utilities.
+
+   This build is a standalone Vite/GitHub-Pages case study with NO next/font and
+   NO Tailwind, so the adaptation is:
+     - Fonts load via <link> in index.html + the @import above (Condensed).
+     - Role tokens below reference the raw family names (the var(--font-noto-*)
+       layer is dropped, kept as a fallback comment for parity).
+     - Colour still stays OFF the .t-* classes — here it lives on the component
+       via the cs-* rules' `color: var(--text-*)` (theme swapping untouched).
+     - --font-display maps to Noto Sans Devanagari for parity, but that webfont
+       is intentionally NOT shipped (no Devanagari glyphs in this case study).
+
+   To upgrade: paste the latest spec over this file. Each .t-* class owns ONLY
+   font-family / size / weight / letter-spacing / line-height. Sizes use clamp()
+   to scale mobile -> desktop (no breakpoints).
+   ========================================================================== */
+
+:root {
+  /* Role tokens (spec §Role tokens, adapted — no next/font var layer here) */
+  --font-sans: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* body/UI */
+  --font-serif: 'Noto Serif', serif;                                   /* accents */
+  --font-heading: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; /* headings */
+  --font-condensed: 'Noto Sans Condensed', 'Noto Sans', sans-serif;    /* labels/eyebrows */
+  --font-display: 'Noto Sans Devanagari', 'Noto Sans', sans-serif;     /* logo / display glyphs (not shipped here) */
+  --font-mono: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
+
+  /* Letter-spacing tracks */
+  --track-eyebrow: 0.2em;
+  --track-display: -0.03em;
+  --track-tight: -0.02em;   /* h1, h2 */
+  --track-snug: -0.01em;    /* h3, h4 */
+}
+
+/* The type scale — colour is intentionally NOT set here. */
+.t-eyebrow { font-family: var(--font-condensed); font-size: 0.625rem; font-weight: 400; line-height: 1; text-transform: uppercase; letter-spacing: var(--track-eyebrow); } /* 10px — thin/condensed, use SPARINGLY as an editorial accent */
+
+/* Local extension (beyond the pasted spec): a second, more readable eyebrow.
+   `.t-eyebrow` (condensed, thin) is reserved for sparing accents; this is the
+   readable workhorse used for most kickers / labels / tags / counts. Keep this
+   block if you re-paste the spec over this file. */
+.t-eyebrow-strong { font-family: var(--font-sans); font-size: 0.6875rem; font-weight: 600; line-height: 1; text-transform: uppercase; letter-spacing: 0.08em; } /* 11px — readable default */
+.t-display { font-family: var(--font-heading); font-size: clamp(2.5rem, 5vw, 3.5rem); font-weight: 100; line-height: 1.05; letter-spacing: var(--track-display); } /* 40->56, ONLY place font-thin is allowed */
+.t-h1 { font-family: var(--font-heading); font-size: clamp(1.875rem, 3.5vw, 2.5rem); font-weight: 600; line-height: 1.1; letter-spacing: var(--track-tight); } /* 30->40 */
+.t-h2 { font-family: var(--font-heading); font-size: clamp(1.5rem, 2.5vw, 1.75rem); font-weight: 600; line-height: 1.2; letter-spacing: var(--track-tight); } /* 24->28 */
+.t-h3 { font-family: var(--font-heading); font-size: clamp(1.25rem, 1.6vw, 1.375rem); font-weight: 600; line-height: 1.3; letter-spacing: var(--track-snug); } /* 20->22 */
+.t-h4 { font-family: var(--font-heading); font-size: clamp(1rem, 1.2vw, 1.125rem); font-weight: 600; line-height: 1.4; letter-spacing: var(--track-snug); } /* 16->18, card/list/subtitles */
+.t-lead { font-family: var(--font-sans); font-size: 1.125rem; font-weight: 400; line-height: 1.6; } /* 18 */
+.t-body { font-family: var(--font-sans); font-size: 1rem; font-weight: 400; line-height: 1.6; } /* 16 */
+.t-body-sm { font-family: var(--font-sans); font-size: 0.875rem; font-weight: 400; line-height: 1.55; } /* 14 */
+.t-meta { font-family: var(--font-sans); font-size: 0.75rem; font-weight: 400; line-height: 1.5; } /* 12 */
