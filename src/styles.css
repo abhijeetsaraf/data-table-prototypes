@@ -138,7 +138,8 @@ h1 {
   gap: 40px;
   max-width: 1320px;
   margin: 0 auto;
-  padding: 48px 24px;
+  /* Extra left gutter keeps content clear of the fixed drawer leaf. */
+  padding: 48px 24px 48px 52px;
   min-height: 100vh;
 }
 
@@ -147,7 +148,7 @@ h1 {
   max-width: none;
   height: 100vh;
   min-height: 0;
-  padding: 32px;
+  padding: 32px 32px 32px 52px;
   gap: 32px;
 }
 
@@ -166,6 +167,108 @@ h1 {
   position: sticky;
   top: 48px;
   height: calc(100vh - 96px);
+}
+
+/* ==========================================================================
+   Table-controls drawer — the scenario meta (back, title, description), the
+   group-by builder, and every table control now live off-canvas on the left,
+   revealed by a vertical "leaf" tab. Closed by default so the page shows just
+   the group-by summary and the table.
+   ========================================================================== */
+.dt-drawer {
+  --drawer-w: 340px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  height: 100vh;
+  transform: translateX(calc(-1 * var(--drawer-w)));
+  transition: transform var(--dur) var(--ease);
+}
+
+.dt-drawer.is-open {
+  transform: translateX(0);
+}
+
+.dt-drawer-panel {
+  flex: none;
+  width: var(--drawer-w);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 20px;
+  overflow-y: auto;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  box-shadow: 8px 0 28px rgba(34, 48, 63, 0.12);
+}
+
+/* Inside the drawer the controls card flows after the meta/builder instead of
+   being pushed to the bottom of a full-height column. */
+.dt-drawer-panel .dt-panel-controls,
+.dt-drawer-panel .dt-panel-controls.is-collapsed {
+  margin-top: 0;
+}
+
+.dt-drawer-panel .dt-panel-section {
+  margin-top: 0;
+}
+
+/* Vertical leaf sticking out past the panel's right edge, so it stays visible
+   at the viewport edge whether the drawer is open or closed. */
+.dt-drawer-leaf {
+  position: absolute;
+  left: 100%;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 6px;
+  border: 1px solid var(--ctrl-border);
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  background: var(--ctrl-bg);
+  color: var(--ctrl-text-subtle);
+  cursor: pointer;
+  box-shadow: 2px 2px 8px rgba(34, 48, 63, 0.1);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.dt-drawer-leaf:hover {
+  background: var(--ctrl-bg-inner);
+  color: var(--ctrl-accent);
+}
+
+.dt-drawer-leaf:focus-visible {
+  outline: 2px solid var(--ctrl-accent);
+  outline-offset: 2px;
+}
+
+.dt-drawer-leaf-icon {
+  display: inline-flex;
+  color: var(--ctrl-accent);
+}
+
+.dt-drawer-leaf-text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Group-by summary relocated to the start of the table area on the page. */
+.dt-main-groupby {
+  margin: 0 0 12px;
+}
+
+.dt-groupby--top {
+  margin: 0;
 }
 
 .dt-panel-head {
@@ -609,16 +712,43 @@ h1 {
   outline-offset: 2px;
 }
 
-/* Table area */
+/* Table area — a row: the on-page group-by menu (when present) on the left,
+   the table column on the right. */
 .dt-main {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 32px;
 }
 
 .dt-layout--fill .dt-main {
   min-height: 0;
+}
+
+/* Left group-by rail: a card that hugs its content (so the table column can
+   still stretch to full height in fill layouts). */
+.dt-groupby-rail {
+  flex: none;
+  align-self: flex-start;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(34, 48, 63, 0.05);
+}
+
+/* The table column stacks the item-control bar, group-by summary, and table. */
+.dt-main-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ==========================================================================
@@ -2756,6 +2886,153 @@ body.dt-resizing {
 .cs-callout p {
   margin: 0;
   color: var(--text-muted);
+}
+
+/* ---- Overview preview carousel ------------------------------------------ */
+.cs-preview {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-soft);
+}
+.cs-preview-head {
+  margin-bottom: 14px;
+}
+.cs-preview-k {
+  display: block;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.cs-preview-lede {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--text-muted);
+}
+
+.cs-carousel {
+  outline: none;
+}
+.cs-carousel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+  border-radius: 18px;
+}
+.cs-carousel-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+/* The viewport is the single framed window. Slides are stacked absolutely and
+   cross-faded (opacity) rather than translated in a row — every image is in the
+   same box, so all of them paint reliably and the transition stays smooth.
+   16:9 matches the exported screenshots, so `contain` fits them with no crop
+   and no letterbox; off-ratio images letterbox onto the bg instead. */
+.cs-carousel-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-tint);
+  box-shadow: 0 14px 34px -24px rgba(10, 40, 80, 0.35);
+}
+.cs-carousel-slide {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+.cs-carousel-slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.cs-carousel-shot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Honour reduced-motion: cut the cross-fade. */
+@media (prefers-reduced-motion: reduce) {
+  .cs-carousel-slide {
+    transition: none;
+  }
+}
+
+/* Arrows overlay the stage edges. */
+.cs-carousel-arrow {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 6px 18px -8px rgba(10, 40, 80, 0.4);
+  transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.cs-carousel-arrow:hover {
+  background: var(--action-hover);
+}
+.cs-carousel-arrow:active {
+  transform: translateY(-50%) scale(0.94);
+}
+.cs-carousel-arrow--prev {
+  left: -16px;
+}
+.cs-carousel-arrow--next {
+  right: -16px;
+}
+
+.cs-carousel-caption {
+  margin-top: 12px;
+}
+.cs-carousel-family {
+  display: block;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.cs-carousel-title {
+  margin: 0 0 4px;
+}
+.cs-carousel-role {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--text-muted);
+}
+
+.cs-carousel-nav {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+.cs-carousel-dot {
+  width: 32px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--border-strong);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), width var(--dur) var(--ease);
+}
+.cs-carousel-dot:hover {
+  background: var(--text-subtle);
+}
+.cs-carousel-dot.is-active {
+  width: 48px;
+  background: var(--accent);
 }
 
 /* ---- Problem grid -------------------------------------------------------- */

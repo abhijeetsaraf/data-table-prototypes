@@ -4,6 +4,17 @@ import GradientBackground from '@abhijeetsaraf/gradient-background/react'
 import { scenarios } from './scenarios.jsx'
 import HeroCellDemo from './components/HeroCellDemo.jsx'
 import DecisionVisual from './components/DecisionVisuals.jsx'
+import ScenarioCarousel from './components/ScenarioCarousel.jsx'
+
+// The prototypes worth previewing up front: the later, most complex grouping
+// variants. Each has a matching screenshot in public/screenshots/<path>.png
+// captured by scripts/extract-screenshots.mjs.
+const CAROUSEL_PATHS = [
+  'row-grouping-command-nested',
+  'row-grouping-command-nested-stacked',
+  'row-grouping-accordion-drilldown',
+  'row-grouping-accordion-drilldown-custom',
+]
 
 // The blues from the hero's radial-gradient wash (see `.cs-hero::before` in
 // styles.css), fed to the animated WebGL mesh-gradient as [highlight, shadow].
@@ -313,6 +324,13 @@ export default function CaseStudy() {
   const activeSection = useScrollSpy(SECTIONS.map((s) => s.id))
   const byPath = Object.fromEntries(scenarios.map((s) => [s.path, s]))
 
+  const carouselItems = CAROUSEL_PATHS.filter((p) => byPath[p]).map((p) => ({
+    path: p,
+    title: byPath[p].title,
+    family: VARIANT_META[p]?.family,
+    role: VARIANT_META[p]?.role || byPath[p].description,
+  }))
+
   // The left rail is extracted out of the content container and pinned to the
   // page. It should stay hidden across the hero (role/surface/etc.) and only
   // reveal once the section list begins — so we show it once the hero has
@@ -404,14 +422,11 @@ export default function CaseStudy() {
           <section id="overview" className="cs-section">
             <h2 className="cs-h2 t-h1">Overview</h2>
             <p className="cs-lead t-lead">
-              As Highspot scaled, every vertical built its data tables to its
-              own requirements — so users had to relearn the interaction each
-              time they encountered a table. This case study pairs research
-              with PMs and executives, mapping the specific actions users take,
-              with a deliberate constraint on designer and developer freedom to
-              converge on one consistent experience. Row grouping was the
-              hardest of these problems, and the one I solved through
-              prototyping.
+              As Highspot scaled, each vertical built its own data table — so
+              users relearned the interaction every time. This study pairs
+              research with PMs and executives to replace that per-team freedom
+              with one consistent pattern. Row grouping was the hardest case,
+              and the one I solved through prototyping.
             </p>
             <div className="cs-callouts">
               <div className="cs-callout">
@@ -439,6 +454,18 @@ export default function CaseStudy() {
                   to read data at scale.
                 </p>
               </div>
+            </div>
+
+            <div className="cs-preview">
+              <div className="cs-preview-head">
+                <span className="cs-preview-k t-eyebrow-strong">A look at the work</span>
+                <p className="cs-preview-lede t-body-sm">
+                  A quick preview of the most complex prototypes — the nested
+                  accordions, drill-in breadcrumbs, and grouping-at-scale states
+                  you can open live below.
+                </p>
+              </div>
+              <ScenarioCarousel items={carouselItems} />
             </div>
           </section>
 

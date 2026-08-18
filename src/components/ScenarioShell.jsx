@@ -33,10 +33,10 @@ export function ToggleSwitch({ on, onChange, label }) {
   )
 }
 
-export function GroupByChips({ groupBy, label = 'Grouped by' }) {
+export function GroupByChips({ groupBy, label = 'Grouped by', className = 'dt-panel-groupby' }) {
   if (!groupBy || groupBy.length === 0) return null
   return (
-    <div className="dt-groupby dt-panel-groupby">
+    <div className={`dt-groupby ${className}`}>
       <span className="dt-groupby-label">{label}</span>
       {groupBy.map((dim, i) => (
         <span key={`${dim}-${i}`} className="dt-groupby-inline">
@@ -86,6 +86,20 @@ function ChevronDown() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  )
+}
+
+// Sliders/settings glyph for the drawer leaf — three tracks with offset thumbs.
+function SlidersIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M2 4h6M11 4h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M2 8h3M8 8h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M2 12h8M13 12h1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="9.5" cy="4" r="1.5" fill="currentColor" />
+      <circle cx="6.5" cy="8" r="1.5" fill="currentColor" />
+      <circle cx="11.5" cy="12" r="1.5" fill="currentColor" />
     </svg>
   )
 }
@@ -228,14 +242,25 @@ export default function ScenarioShell({
   const [dense, setDense] = useState(false)
   const [striped, setStriped] = useState(false)
   const [showCount, setShowCount] = useState(true)
-  const [showHeading, setShowHeading] = useState(false)
+  const [showHeading, setShowHeading] = useState(true)
   const [showDescription, setShowDescription] = useState(false)
   const [controlsOpen, setControlsOpen] = useState(controlsDefaultOpen)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const ctx = useMemo(() => ({ dense, setDense }), [dense])
 
   // Column visibility shares a per-table store with the table itself, so these
   // panel toggles and the rendered columns stay in sync.
   const colVis = useColumnVisibility(tableId, columns)
+
+  // Escape closes the controls drawer.
+  useEffect(() => {
+    if (!drawerOpen) return
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setDrawerOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [drawerOpen])
 
   return (
     <DensityContext.Provider value={ctx}>
@@ -244,17 +269,15 @@ export default function ScenarioShell({
         data-density={dense ? 'dense' : 'normal'}
         data-striped={striped ? 'on' : 'off'}
       >
-        <aside className="dt-panel">
-          <div className="dt-panel-head">
-            <Link to="/" className="back-link">← Back</Link>
-            <h1 className="dt-panel-title">{title}</h1>
-            {description && <p className="dt-panel-desc">{description}</p>}
-            <GroupByChips groupBy={groupBy} />
-          </div>
-
-          {panelExtras && (
-            <div className="dt-panel-section">{panelExtras}</div>
-          )}
+        {/* Slide-in drawer holding the scenario meta + every table control.
+            A vertical leaf pinned to the viewport edge toggles it. */}
+        <div className={`dt-drawer ${drawerOpen ? 'is-open' : ''}`}>
+          <aside className="dt-drawer-panel">
+            <div className="dt-panel-head">
+              <Link to="/" className="back-link">← Back</Link>
+              <h1 className="dt-panel-title">{title}</h1>
+              {description && <p className="dt-panel-desc">{description}</p>}
+            </div>
 
           <div
             className={`dt-panel-controls ${
@@ -357,19 +380,44 @@ export default function ScenarioShell({
               </div>
             )}
           </div>
-        </aside>
+          </aside>
+
+          <button
+            type="button"
+            className="dt-drawer-leaf"
+            aria-expanded={drawerOpen}
+            aria-label={drawerOpen ? 'Close table controls' : 'Open table controls'}
+            onClick={() => setDrawerOpen((o) => !o)}
+          >
+            <span className="dt-drawer-leaf-icon"><SlidersIcon /></span>
+            <span className="dt-drawer-leaf-text">Table controls</span>
+          </button>
+        </div>
 
         <div className="dt-main">
-          <ItemControlBar
-            showCount={showCount}
-            showHeading={showHeading}
-            showDescription={showDescription}
-            heading={title}
-            description={description}
-            loadedCount={loadedCount}
-            totalCount={totalCount}
-          />
-          {children}
+          {/* Group-by menu lives on the page (left of the table), not in the
+              drawer — so building the grouping stays a first-class action. */}
+          {panelExtras && (
+            <aside className="dt-groupby-rail">{panelExtras}</aside>
+          )}
+
+          <div className="dt-main-body">
+            <ItemControlBar
+              showCount={showCount}
+              showHeading={showHeading}
+              showDescription={showDescription}
+              heading={title}
+              description={description}
+              loadedCount={loadedCount}
+              totalCount={totalCount}
+            />
+            {groupBy && groupBy.length > 0 && (
+              <div className="dt-main-groupby">
+                <GroupByChips groupBy={groupBy} className="dt-groupby--top" />
+              </div>
+            )}
+            {children}
+          </div>
         </div>
       </main>
     </DensityContext.Provider>
