@@ -1,5 +1,5 @@
 import {
-  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
+  memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
   useSyncExternalStore,
 } from 'react'
 
@@ -82,7 +82,7 @@ export function CloseIcon() {
 // ---------------------------------------------------------------------------
 const MIN_COL_WIDTH = 72
 
-export function TruncatingCell({ text, className = '' }) {
+export const TruncatingCell = memo(function TruncatingCell({ text, className = '' }) {
   const ref = useRef(null)
   const [truncated, setTruncated] = useState(false)
 
@@ -105,7 +105,7 @@ export function TruncatingCell({ text, className = '' }) {
       {text}
     </span>
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // useColumnResize

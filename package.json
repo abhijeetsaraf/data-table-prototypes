@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "screenshots": "node scripts/extract-screenshots.mjs"
   },
   "dependencies": {
     "@abhijeetsaraf/gradient-background": "^0.1.0",
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.62.1",
     "vite": "^6.0.7"
   }
 }

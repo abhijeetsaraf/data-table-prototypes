@@ -1,5 +1,5 @@
 import {
-  Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState,
+  Fragment, memo, useCallback, useLayoutEffect, useMemo, useRef, useState,
 } from 'react'
 import ScenarioShell from '../components/ScenarioShell.jsx'
 import {
@@ -270,6 +270,87 @@ function HeaderPager({ label, page, pageCount, total, pageSize, onGoTo }) {
   )
 }
 
+// A single group-header row. Memoized so that a scroll-driven pill update (which
+// re-renders the parent) only re-renders the header rows whose props actually
+// changed — in practice just the pinned top-level header and the one it replaces.
+// All callbacks are passed as stable references from the parent so the shallow
+// prop compare can bail for every unchanged header.
+const GroupHeaderRow = memo(function GroupHeaderRow({
+  pathKey, depth, dataLevel, label, indent, open, entryCount, colSpan,
+  showPager, childLabel, micro, microPageCount, itemTotal,
+  isTopPinned, pills, toggleNode, setMicro, scrollToPill,
+}) {
+  const displayCount =
+    isTopPinned && pills && pills.length ? pills[pills.length - 1].count : entryCount
+
+  return (
+    <tr
+      className={`dt-group-row dt-nest${isTopPinned ? ' is-pinned-trail' : ''}`}
+      data-level={dataLevel}
+      data-stack-depth={depth}
+      data-stack-key={pathKey}
+      data-stack-label={label}
+      data-stack-count={entryCount}
+    >
+      <td className="dt-group-cell" colSpan={colSpan}>
+        <div className="dt-group-header" style={{ paddingLeft: indent }}>
+          <div className="dt-group-header-start">
+            <button type="button" className="dt-group-toggle"
+              aria-expanded={open} aria-label={open ? 'Collapse group' : 'Expand group'}
+              onClick={() => toggleNode(pathKey, depth)}>
+              <span className={`dt-group-chevron ${open ? 'is-open' : ''}`}><ChevronRight /></span>
+            </button>
+            {isTopPinned && pills ? (
+              <div className="dt-split-main dt-stack-crumbs">
+                {pills.map((pill, j) => {
+                  const isCurrent = j === pills.length - 1
+                  return (
+                    <Fragment key={`${pill.depth}-${pill.label}`}>
+                      {j > 0 && <span className="dt-split-sep"><ChevronRight /></span>}
+                      <button
+                        type="button"
+                        className={`dt-split-crumb ${isCurrent ? 'is-current' : ''}`}
+                        onClick={() => scrollToPill(pill)}
+                        title={pill.label}
+                      >
+                        {pill.label}
+                      </button>
+                    </Fragment>
+                  )
+                })}
+              </div>
+            ) : (
+              <TruncatingCell text={label} className="dt-strong" />
+            )}
+            <span className="dt-group-count">{displayCount}</span>
+          </div>
+          {showPager && (
+            <HeaderPager label={childLabel} page={micro} pageCount={microPageCount}
+              total={itemTotal} pageSize={MICRO_PAGE_SIZE}
+              onGoTo={(p) => setMicro(pathKey, p, microPageCount)} />
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+})
+
+// A single leaf (member) row. Memoized so it is skipped entirely on scroll-driven
+// re-renders — its props (the row object, the stable column list, indent, stripe)
+// never change while scrolling.
+const LeafRow = memo(function LeafRow({ item, dataColumns, leafIndent, alt }) {
+  return (
+    <tr className={`dt-row ${alt ? 'dt-row--alt' : ''}`}>
+      <td className="dt-cell dt-cell--group-spacer" style={{ paddingLeft: leafIndent }} />
+      {dataColumns.map((col) => (
+        <td key={col.key} className="dt-cell">
+          <TruncatingCell text={item[col.key]} />
+        </td>
+      ))}
+    </tr>
+  )
+})
+
 export default function RowGroupingCommandNestedStacked() {
   const [sort, setSort] = useState({ key: null, dir: 'asc' })
   const [openFilters, setOpenFilters] = useState({})
@@ -303,12 +384,18 @@ export default function RowGroupingCommandNestedStacked() {
   const toggleFilter = (key) => setOpenFilters((p) => ({ ...p, [key]: !p[key] }))
 
   const isOpen = (pathKey, depth) => openMap[pathKey] ?? depth < expandDepth
-  const toggleNode = (pathKey, depth) =>
-    setOpenMap((prev) => ({ ...prev, [pathKey]: !(prev[pathKey] ?? depth < expandDepth) }))
+  const toggleNode = useCallback(
+    (pathKey, depth) =>
+      setOpenMap((prev) => ({ ...prev, [pathKey]: !(prev[pathKey] ?? depth < expandDepth) })),
+    [expandDepth],
+  )
 
   const getMicro = (key) => microMap[key] || 1
-  const setMicro = (key, value, count) =>
-    setMicroMap((p) => ({ ...p, [key]: Math.min(Math.max(1, value), count) }))
+  const setMicro = useCallback(
+    (key, value, count) =>
+      setMicroMap((p) => ({ ...p, [key]: Math.min(Math.max(1, value), count) })),
+    [],
+  )
 
   const changeExpandDepth = (next) => {
     setExpandDepth(next)
@@ -468,11 +555,11 @@ export default function RowGroupingCommandNestedStacked() {
     return () => window.removeEventListener('resize', onResize)
   }, [measure])
 
-  const scrollToPill = (pill) => {
+  const scrollToPill = useCallback((pill) => {
     const c = scrollRef.current
     if (!c) return
     c.scrollTo({ top: Math.max(0, pill.y - headHRef.current + 1), behavior: 'smooth' })
-  }
+  }, [])
 
   // Recursively push accordion rows for one group entry and its open subtree.
   const renderEntry = (entry, path, depth, out) => {
@@ -493,58 +580,29 @@ export default function RowGroupingCommandNestedStacked() {
     // the descendants that have scrolled past collapse into pills right after
     // the parent's chevron, replacing a separate floating bar.
     const isTopPinned = depth === 0 && pills.length > 0 && pills[0].key === pathKey
-    const headCount = isTopPinned ? pills[pills.length - 1].count : entry.count
 
     out.push(
-      <tr
+      <GroupHeaderRow
         key={`h-${pathKey}`}
-        className={`dt-group-row dt-nest${isTopPinned ? ' is-pinned-trail' : ''}`}
-        data-level={Math.min(depth, 3)}
-        data-stack-depth={depth}
-        data-stack-key={pathKey}
-        data-stack-label={entry.label}
-        data-stack-count={entry.count}
-      >
-        <td className="dt-group-cell" colSpan={activeColumns.length}>
-          <div className="dt-group-header" style={{ paddingLeft: indent }}>
-            <div className="dt-group-header-start">
-              <button type="button" className="dt-group-toggle"
-                aria-expanded={open} aria-label={open ? 'Collapse group' : 'Expand group'}
-                onClick={() => toggleNode(pathKey, depth)}>
-                <span className={`dt-group-chevron ${open ? 'is-open' : ''}`}><ChevronRight /></span>
-              </button>
-              {isTopPinned ? (
-                <div className="dt-split-main dt-stack-crumbs">
-                  {pills.map((pill, j) => {
-                    const isCurrent = j === pills.length - 1
-                    return (
-                      <Fragment key={`${pill.depth}-${pill.label}`}>
-                        {j > 0 && <span className="dt-split-sep"><ChevronRight /></span>}
-                        <button
-                          type="button"
-                          className={`dt-split-crumb ${isCurrent ? 'is-current' : ''}`}
-                          onClick={() => scrollToPill(pill)}
-                          title={pill.label}
-                        >
-                          {pill.label}
-                        </button>
-                      </Fragment>
-                    )
-                  })}
-                </div>
-              ) : (
-                <TruncatingCell text={entry.label} className="dt-strong" />
-              )}
-              <span className="dt-group-count">{headCount}</span>
-            </div>
-            {open && microPageCount > 1 && (
-              <HeaderPager label={plural(childName)} page={micro} pageCount={microPageCount}
-                total={itemTotal} pageSize={MICRO_PAGE_SIZE}
-                onGoTo={(p) => setMicro(pathKey, p, microPageCount)} />
-            )}
-          </div>
-        </td>
-      </tr>,
+        pathKey={pathKey}
+        depth={depth}
+        dataLevel={Math.min(depth, 3)}
+        label={entry.label}
+        indent={indent}
+        open={open}
+        entryCount={entry.count}
+        colSpan={activeColumns.length}
+        showPager={open && microPageCount > 1}
+        childLabel={plural(childName)}
+        micro={micro}
+        microPageCount={microPageCount}
+        itemTotal={itemTotal}
+        isTopPinned={isTopPinned}
+        pills={isTopPinned ? pills : null}
+        toggleNode={toggleNode}
+        setMicro={setMicro}
+        scrollToPill={scrollToPill}
+      />,
     )
 
     if (!open) return
@@ -554,14 +612,13 @@ export default function RowGroupingCommandNestedStacked() {
       for (let k = 0; k < e - s; k++) {
         const item = entry.child.members[s + k]
         out.push(
-          <tr key={`m-${pathKey}-${s + k}`} className={`dt-row ${(s + k) % 2 === 1 ? 'dt-row--alt' : ''}`}>
-            <td className="dt-cell dt-cell--group-spacer" style={{ paddingLeft: leafIndent }} />
-            {dataColumns.map((col) => (
-              <td key={col.key} className="dt-cell">
-                <TruncatingCell text={item[col.key]} />
-              </td>
-            ))}
-          </tr>,
+          <LeafRow
+            key={`m-${pathKey}-${s + k}`}
+            item={item}
+            dataColumns={dataColumns}
+            leafIndent={leafIndent}
+            alt={(s + k) % 2 === 1}
+          />,
         )
       }
     } else {
